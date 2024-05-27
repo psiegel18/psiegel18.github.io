@@ -71,21 +71,61 @@ document.getElementById("submitButton").onclick = function(){
 }
 
 function calcCenturyCode(){
-    if (year>=1800 && year<=1899){
-        centuryCode = 5;
-        baseYear = 1800;
-    }
-    else if(year>=1900 && year<=1999){
-        centuryCode = 3;
-        baseYear = 1900;
-    }
-    else if(year>=2000 && year<=2099){
+    if (year>=1 && year<=99){
         centuryCode = 2;
-        baseYear = 2000;
+        baseYear = 0000;
     }
-    else if(year>=2100 && year<=2199){
+    else if(year>=100 && year<=199){
         centuryCode = 0;
-        baseYear = 2100;
+        baseYear = 0100;
+    }
+    else if(year>=200 && year<=299){
+        centuryCode = 5;
+        baseYear = 0200;
+    }
+    else if(year>=300 && year<=399){
+        centuryCode = 3;
+        baseYear = 0300;
+    }
+    else if(year>=400 && year<=499){
+        centuryCode = 2;
+        baseYear = 0400;
+    }
+    else if(year>=500 && year<=599){
+        centuryCode = 0;
+        baseYear = 0500;
+    }
+    else if(year>=600 && year<=699){
+        centuryCode = 5;
+        baseYear = 0600;
+    }
+    else if(year>=700 && year<=799){
+        centuryCode = 3;
+        baseYear = 0700;
+    }
+    else if(year>=800 && year<=899){
+        centuryCode = 2;
+        baseYear = 0800;
+    }
+    else if(year>=900 && year<=999){
+        centuryCode = 0;
+        baseYear = 0900;
+    }
+    else if(year>=1000 && year<=1099){
+        centuryCode = 5;
+        baseYear = 1000;
+    }
+    else if(year>=1100 && year<=1199){
+        centuryCode = 3;
+        baseYear = 1100;
+    }
+    else if(year>=1200 && year<=1299){
+        centuryCode = 2;
+        baseYear = 1200;
+    }
+    else if(year>=1300 && year<=1399){
+        centuryCode = 0;
+        baseYear = 1300;
     }
     else if(year>=1400 && year<=1499){
         centuryCode = 5;
@@ -103,8 +143,104 @@ function calcCenturyCode(){
         centuryCode = 0;
         baseYear = 1700;
     }
+    else if(year>=1800 && year<=1899){
+        centuryCode = 5;
+        baseYear = 1800;
+    }
+    else if(year>=1900 && year<=1999){
+        centuryCode = 3;
+        baseYear = 1900;
+    }
+    else if(year>=2000 && year<=2099){
+        centuryCode = 2;
+        baseYear = 2000;
+    }
+    else if(year>=2100 && year<=2199){
+        centuryCode = 0;
+        baseYear = 2100;
+    }
+    else if(year>=2200 && year<=2299){
+        centuryCode = 5;
+        baseYear = 2200;
+    }
+    else if(year>=2300 && year<=2399){
+        centuryCode = 3;
+        baseYear = 2300;
+    }
+    else if(year>=2400 && year<=2499){
+        centuryCode = 2;
+        baseYear = 2400;
+    }
+    else if(year>=2500 && year<=2599){
+        centuryCode = 0;
+        baseYear = 2500;
+    }
+    else if(year>=2600 && year<=2699){
+        centuryCode = 5;
+        baseYear = 2600;
+    }
+    else if(year>=2700 && year<=2799){
+        centuryCode = 3;
+        baseYear = 2700;
+    }
+    else if(year>=2800 && year<=2899){
+        centuryCode = 2;
+        baseYear = 2800;
+    }
+    else if(year>=2900 && year<=2999){
+        centuryCode = 0;
+        baseYear = 2900;
+    }
+    else if(year>=3000 && year<=3099){
+        centuryCode = 5;
+        baseYear = 3000;
+    }
+    else if(year>=3100 && year<=3199){
+        centuryCode = 3;
+        baseYear = 3100;
+    }
+    else if(year>=3200 && year<=3299){
+        centuryCode = 2;
+        baseYear = 3200;
+    }
+    else if(year>=3300 && year<=3399){
+        centuryCode = 0;
+        baseYear = 3300;
+    }
+    else if(year>=3400 && year<=3499){
+        centuryCode = 5;
+        baseYear = 3400;
+    }
+    else if(year>=3500 && year<=3599){
+        centuryCode = 3;
+        baseYear = 3500;
+    }
+    else if(year>=3600 && year<=3699){
+        centuryCode = 2;
+        baseYear = 3600;
+    }
+    else if(year>=3700 && year<=3799){
+        centuryCode = 0;
+        baseYear = 3700;
+    }
+    else if(year>=3800 && year<=3899){
+        centuryCode = 5;
+        baseYear = 3800;
+    }
+    else if(year>=3900 && year<=3999){
+        centuryCode = 3;
+        baseYear = 3900;
+    }
+    else if(year>=4000 && year<=4099){
+        centuryCode = 2;
+        baseYear = 4000;
+    }
+    else if(year>=4100 && year<=4199){
+        centuryCode = 0;
+        baseYear = 4100;
+    }
     else{
-        console.log("birthYear is not in year range")
+        console.log("birthYear is not in year range configured in centuryCode Function")
     }
 }
 function doomsdayByMonth(){
@@ -215,11 +351,11 @@ function executeAndUpdateWebsite(){
         document.getElementById('bdayH2').textContent = 'February only has 28 days on a non-leap year. Please try using a date between 1-28.';
         document.getElementById('bdayCalculation').innerText = null;
     }
-    else if (year < 1400){
+    else if (year < 1){
         document.getElementById('bdayH2').textContent = 'Calculator is not configured to go that far back in the past. Please try again!';
         document.getElementById('bdayCalculation').innerText = null;
     }
-    else if (year > 2199){
+    else if (year > 4199){
         document.getElementById('bdayH2').textContent = 'Calculator is not configured to go that far forward into the future. Please try again!';
         document.getElementById('bdayCalculation').innerText = null;
     }
