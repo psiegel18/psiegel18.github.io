@@ -2,249 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="BDay Calculator Form" content="width=device-width, initial-scale=1.0">
-    <title>Birthday Calculator Form</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Games and Tools</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .button-container {
+            margin-top: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 18px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1 id="bdayH1">Birthdate to Weekday Calculator</h1>
-    <div>
-        <label for="year">Year:</label>
-        <input type="number" name="birthYear" id="birthYear" />
-        <br>
-        <label for="month">Month:</label>
-        <select name="birthMonth" id="birthMonth">
-          <option value="January">January</option>
-          <option value="February">February</option>
-          <option value="March">March</option>
-          <option value="April">April</option>
-          <option value="May">May</option>
-          <option value="June">June</option>
-          <option value="July">July</option>
-          <option value="August">August</option>
-          <option value="September">September</option>
-          <option value="October">October</option>
-          <option value="November">November</option>
-          <option value="December">December</option>
-        </select>
-        <br>
-        <label for="day">Date</label>
-        <input type="number" name="birthDay" id="birthDay">
-      </div>
-      <br>
-      <div>
-          <input type="submit" name="submitButton" id="submitButton">
-      </div><hr>
-      <h2 id="bdayH2">You were born on a: <u>?</u></h2>
-      <div id="bdayCalculation">
-      <p> The following steps were taken in calculating the day of the week based on the date entered above
-        <ol>
-          <li><b>Determine the <ins>Century Code</ins><span id="centuryCode1"></span></b>
-          <ul> 
-            <li> Using the year <span id="userYear1"></span> entered above we can determine the century code. <i>See the century code table below!</i></li>
-          </ul>
-          </li>
-          <li><b>Determine the <ins>Quotient</ins><span id="quotient1"></span> & the <ins>Remainder</ins><span id="remainder1"></span></b>
-            <ol type="a"> 
-              <li> We first reformat the year to be two digits <br> <i>(e.g., <ins><span id="userYear2">'abcd'</span></ins> becomes <ins><span id="xxYear1">'cd'</span></ins>)</i></li>
-              <li> Then we divide <span id="xxYear2"><i>'cd'</i></span> by 12 and we get <span id="quotient2">'cd'/12</span> with a remainder of <span id="remainder2">x</span></li>
-            </ol>
-          </li>
-          <li><b>Determine how many times 4 goes into the remainder<span id="xxYearRemDiv4Quotient1"></span></b>
-            <ul>
-              <li>Dividing <span id="remainder3">x</span> by 4 we get <span id="xxYearRemDiv4Quotient2">x/4</span> with a remainder of <span id="xxYearRemDiv4Remainder">#</span></li>
-            </ul>
-          </li>
-          <li><b>Now we determine the <ins>Doomsday</ins> value<span id="userDoomsday1"></span> based on the month and date</b>
-            <ol type="a">
-              <li>Using the month <small><i><span id="userMonth1"></span></i></small> entered above we can determine the doomsday value for that month using the table below.</li>
-              <li>Next we take the date <small><i><span id="userDate1"></span></i></small> value entered above and we subtract <span id="userMonth2">the month's</span> doomsday value <small><i><span id="monthDoomsday"></span></i></small> which gives us a Doomsday value of <small><i><span id="userDoomsday2"><big>#</span></big></i></small>
-            </ol>
-          </li>
-          <li><b>Now we take the sum of the 5 values determined in steps 1-4<span id="totalResult1"></span> and we calculate the remainder after dividing by 7<span id="weekDate1"></span></b>
-            <ol type="a">
-              <li>Sum<small><i><span id="totalResult2"></span></i></small> = <small>Century Code<small><i><span id="centuryCode2"></span></i></small> + Quotient<small><i><span id="quotient3"></span></i></small> + Remainder<small><i><span id="remainder4"></span></i></small> + Reminder/4<small><i><span id="xxYearRemDiv4Quotient3"></span></i></small> + Doomsday<small><i><span id="userDoomsday3"></span></i></small></small> </li>
-              <li>Sum<small><i><span id="totalResult3"></span></i></small> divided by 7 is <span id="x">#</span> with a remainder of <span id="weekDate2">#</span></li>
-              <i><small><span id="negativeNumber"></span></small></i>
-            </ol>
-          </li>
-          <li><b>Finally, compare your final result from step 5 to the following table to find the corresponding day of the week:<small><i><span id="weekDay"></span></i></small></b>
-            <table>
-              <tr>
-                <th>Sunday</th>
-                <th>Monday</th>
-                <th>Tuesday</th>
-                <th>Wednesday</th>
-                <th>Thursday</th>
-                <th>Friday</th>
-                <th>Saturday</th>
-              </tr>
-              <tr>
-                <td>0</td>
-                <td>1</td>
-                <td>2</td>
-                <td>3</td>
-                <td>4</td>
-                <td>5</td>
-                <td>6</td>
-              </tr>
-            </table>
-          </li>
-        </ol><br><hr>
-        <b style="margin-left: 25px;">Century Code Table:</b><br>
-        <table align="margin-left" style="margin-left: 40px;">
-          <tr>
-            <th>5</th>
-            <th>3</th>
-            <th>2</th>
-            <th>0</th>
-          </tr>
-          <tr>
-            <td></td>
-            <td></td>
-            <td>1-99</td>
-            <td>100-199</td>
-          </tr>
-          <tr>
-            <td>200-299</td>
-            <td>300-399</td>
-            <td>400-499</td>
-            <td>500-599</td>
-          </tr>
-          <tr>
-            <td>600-699</td>
-            <td>700-799</td>
-            <td>800-899</td>
-            <td>900-999</td>
-          </tr>
-          <tr>
-            <td>1000-1099</td>
-            <td>1100-1199</td>
-            <td>1200-1299</td>
-            <td>1300-1399</td>
-          </tr>
-          <tr>
-            <td>1400-1499</td>
-            <td>1500-1599</td>
-            <td>1600-1699</td>
-            <td>1700-1799</td>
-          </tr>
-          <tr>
-            <td>1800-1899</td>
-            <td>1900-1999</td>
-            <td>2000-2099</td>
-            <td>2100-2199</td>
-          </tr>
-          <tr>
-            <td>2200-2299</td>
-            <td>2300-2399</td>
-            <td>2400-2499</td>
-            <td>2500-2599</td>
-          </tr>
-          <tr>
-            <td>2600-2699</td>
-            <td>2700-2799</td>
-            <td>2800-2899</td>
-            <td>2900-2999</td>
-          </tr>
-          <tr>
-            <td>3000-3099</td>
-            <td>3100-3199</td>
-            <td>3200-3299</td>
-            <td>3300-3399</td>
-          </tr>
-          <tr>
-            <td>3400-3499</td>
-            <td>3500-3599</td>
-            <td>3600-3699</td>
-            <td>3700-3799</td>
-          </tr>
-          <tr>
-            <td>3800-3899</td>
-            <td>3900-3999</td>
-            <td>4000-4099</td>
-            <td>4100-4199</td>
-          </tr>
-        </table><br><hr>
-        <b style="margin-left: 25px;">Doomsday by Month:</b><br>
-        <table align="margin-left" style="margin-left: 40px;"> 
-          <tr>
-            <th>Month</th>
-            <th>Doomsday Value</th>
-          </tr>
-          <tr>
-            <td>January</td>
-            <td>
-              <table>
-                <tr>
-                  <th>Leap Year</th>
-                  <th>Non-Leap Year</th>
-                </tr>
-                <tr>
-                  <td>4</td>
-                  <td>3</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td>February</td>
-            <td>
-              <table>
-                <tr>
-                  <th>Leap Year</th>
-                  <th>Non-Leap Year</th>
-                </tr>
-                <tr>
-                  <td>29</td>
-                  <td>28</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-            <td>March</td>
-            <td>14</td>
-          </tr>
-          <tr>
-            <td>April</td>
-            <td>4</td>
-          </tr>
-          <tr>
-            <td>May</td>
-            <td>9</td>
-          </tr>
-          <tr>
-            <td>June</td>
-            <td>6</td>
-          </tr>
-          <tr>
-            <td>July</td>
-            <td>11</td>
-          </tr>
-          <tr>
-            <td>August</td>
-            <td>8</td>
-          </tr>
-          <tr>
-            <td>September</td>
-            <td>5</td>
-          </tr>
-          <tr>
-            <td>October</td>
-            <td>10</td>
-          </tr>
-          <tr>
-            <td>November</td>
-            <td>7</td>
-          </tr>
-          <tr>
-            <td>December</td>
-            <td>12</td>
-          </tr>
-        </table>
-      </p>
-      </div>
-      <script src="BDay2.0.js"></script>
+    <div class="container">
+        <h1>Welcome to My Games and Tools</h1>
+        <div class="button-container">
+            <a href="BDayCalc.html" class="button">Birthday Calculator</a>
+            <a href="AItetris.html" class="button">Play Tetris made by ClaudeAI</a>
+        </div>
+    </div>
 </body>
 </html>

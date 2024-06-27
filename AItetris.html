@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Tetris</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+        .side-panel {
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 20px;
+            width: 200px;
+        }
+        .side-panel h2 {
+            margin-top: 0;
+        }
+        .side-panel ul {
+            padding-left: 20px;
+        }
+        canvas {
+            border: 2px solid #333;
+        }
+        #score-display, #last-score-display {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="side-panel">
+            <div id="score-display">Current Score: 0</div>
+            <div id="last-score-display">Last Game Score: N/A</div>
+            <h2>Instructions</h2>
+            <ul>
+                <li>Space: Start game</li>
+                <li>Left Arrow: Move left</li>
+                <li>Right Arrow: Move right</li>
+                <li>Down Arrow: Move down</li>
+                <li>Up Arrow: Rotate</li>
+                <li>P: Pause/Resume</li>
+                <li>Q: Quit game</li>
+            </ul>
+        </div>
+        <canvas id="tetrisCanvas"></canvas>
+    </div>
+    <script>
+        const canvas = document.getElementById('tetrisCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const lastScoreDisplay = document.getElementById('last-score-display');
+
+        let BLOCK_SIZE, BOARD_WIDTH, BOARD_HEIGHT;
+        let board;
+
+        const SHAPES = [
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]],
+            [[1, 1, 0], [0, 1, 1]],
+            [[0, 1, 1], [1, 1, 0]]
+        ];
+
+        const COLORS = [
+            '#00FFFF', '#FFFF00', '#FF00FF', '#FF0000',
+            '#00FF00', '#0000FF', '#FFA500'
+        ];
+
+        let currentPiece = null;
+        let currentColor = '';
+        let gameInterval = null;
+        let isPaused = false;
+        let isGameStarted = false;
+        let score = 0;
+        let lastScore = null;
+
+        function resizeGame() {
+            const gameContainer = document.querySelector('.game-container');
+            const sidePanelWidth = document.querySelector('.side-panel').offsetWidth;
+            const availableWidth = gameContainer.offsetWidth - sidePanelWidth - 40; // 40px for margins
+            const availableHeight = gameContainer.offsetHeight - 40; // 40px for margins
+
+            BLOCK_SIZE = Math.floor(Math.min(availableWidth / 10, availableHeight / 20));
+            BOARD_WIDTH = 10;
+            BOARD_HEIGHT = 20;
+
+            canvas.width = BLOCK_SIZE * BOARD_WIDTH;
+            canvas.height = BLOCK_SIZE * BOARD_HEIGHT;
+
+            // Reinitialize the board when resizing
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+
+            drawBoard();
+        }
+
+        function initGame() {
+            resizeGame();
+            updateLastScoreDisplay();
+            drawStartScreen();
+        }
+
+        function startGame() {
+            if (!isGameStarted) {
+                isGameStarted = true;
+                score = 0;
+                updateScoreDisplay();
+                createPiece();
+                gameInterval = setInterval(gameLoop, 500);
+            }
+        }
+
+        function quitGame() {
+            if (isGameStarted) {
+                lastScore = score;
+                updateLastScoreDisplay();
+            }
+            isGameStarted = false;
+            isPaused = false;
+            clearInterval(gameInterval);
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            currentPiece = null;
+            score = 0;
+            updateScoreDisplay();
+            drawStartScreen();
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Current Score: ${score}`;
+        }
+
+        function updateLastScoreDisplay() {
+            lastScoreDisplay.textContent = lastScore !== null ? `Last Game Score: ${lastScore}` : 'Last Game Score: N/A';
+        }
+
+        window.addEventListener('resize', resizeGame);
+
+        function createPiece() {
+            const shapeIndex = Math.floor(Math.random() * SHAPES.length);
+            const shape = SHAPES[shapeIndex];
+            currentColor = COLORS[shapeIndex];
+            currentPiece = {
+                shape: shape,
+                x: Math.floor(BOARD_WIDTH / 2) - Math.floor(shape[0].length / 2),
+                y: 0
+            };
+        }
+
+        function drawBoard() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    if (board[y][x]) {
+                        ctx.fillStyle = board[y][x];
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                    }
+                }
+            }
+
+            if (currentPiece) {
+                ctx.fillStyle = currentColor;
+                for (let y = 0; y < currentPiece.shape.length; y++) {
+                    for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                        if (currentPiece.shape[y][x]) {
+                            ctx.fillRect((currentPiece.x + x) * BLOCK_SIZE, 
+                                         (currentPiece.y + y) * BLOCK_SIZE, 
+                                         BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                        }
+                    }
+                }
+            }
+
+            if (isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        function drawStartScreen() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Press SPACE to start', canvas.width / 2, canvas.height / 2);
+        }
+
+        function canMove(dx, dy) {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x]) {
+                        const newX = currentPiece.x + x + dx;
+                        const newY = currentPiece.y + y + dy;
+                        if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT || 
+                            (newY >= 0 && board[newY][newX])) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function rotate() {
+            const rotated = currentPiece.shape[0].map((_, i) => 
+                currentPiece.shape.map(row => row[i]).reverse()
+            );
+            const previousShape = currentPiece.shape;
+            currentPiece.shape = rotated;
+            if (!canMove(0, 0)) {
+                currentPiece.shape = previousShape;
+            }
+        }
+
+        function mergePiece() {
+            for (let y = 0; y < currentPiece.shape.length; y++) {
+                for (let x = 0; x < currentPiece.shape[y].length; x++) {
+                    if (currentPiece.shape[y][x]) {
+                        board[currentPiece.y + y][currentPiece.x + x] = currentColor;
+                    }
+                }
+            }
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell !== 0)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    linesCleared++;
+                }
+            }
+            if (linesCleared > 0) {
+                score += [40, 100, 300, 1200][linesCleared - 1];
+                updateScoreDisplay();
+            }
+        }
+
+        function gameLoop() {
+            if (!isPaused) {
+                if (canMove(0, 1)) {
+                    currentPiece.y++;
+                } else {
+                    mergePiece();
+                    clearLines();
+                    createPiece();
+                    if (!canMove(0, 0)) {
+                        alert(`Game Over! Your score: ${score}`);
+                        quitGame();
+                        return;
+                    }
+                }
+                drawBoard();
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            drawBoard();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !isGameStarted) {
+                startGame();
+                return;
+            }
+
+            if (isGameStarted) {
+                if (e.key.toLowerCase() === 'q') {
+                    quitGame();
+                    return;
+                }
+
+                if (!isPaused) {
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                            if (canMove(-1, 0)) currentPiece.x--;
+                            break;
+                        case 'ArrowRight':
+                            if (canMove(1, 0)) currentPiece.x++;
+                            break;
+                        case 'ArrowDown':
+                            if (canMove(0, 1)) currentPiece.y++;
+                            break;
+                        case 'ArrowUp':
+                            rotate();
+                            break;
+                    }
+                }
+                if (e.key.toLowerCase() === 'p') {
+                    togglePause();
+                }
+                drawBoard();
+            }
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
