@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+        }
+        #scoreboard {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+        #instructionsModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="scoreboard">Score: 0 | High Score: 0</div>
+
+    <div id="instructionsModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Snake Game Instructions</h2>
+            <p>Welcome to the Snake Game! Here's how to play:</p>
+            <ul>
+                <li>Use the arrow keys to control the snake's direction.</li>
+                <li>Eat the red apples to grow longer and increase your score.</li>
+                <li>Avoid hitting the walls or your own tail.</li>
+                <li>The game ends when you crash into a wall or your own tail.</li>
+                <li>Press 'P' or 'Esc' to pause/resume the game.</li>
+                <li>Try to get the highest score possible!</li>
+            </ul>
+            <p>Click the close button or anywhere outside this window to start the game. Good luck!</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const modal = document.getElementById('instructionsModal');
+        const closeBtn = document.getElementsByClassName('close')[0];
+        const scoreboardElement = document.getElementById('scoreboard');
+
+        // Show instructions modal
+        modal.style.display = 'block';
+
+        // Close modal and start game
+        closeBtn.onclick = startGame;
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                startGame();
+            }
+        }
+
+        let snake, apple, direction, gameLoop;
+        let score = 0;
+        let highScore = 0;
+        let isPaused = false;
+
+        function startGame() {
+            modal.style.display = 'none';
+            snake = [{x: 200, y: 200}, {x: 190, y: 200}, {x: 180, y: 200}];
+            apple = getRandomPosition();
+            direction = 'right';
+            score = 0;
+            updateScoreboard();
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(game, 100);
+            isPaused = false;
+        }
+
+        function game() {
+            if (!isPaused) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                moveSnake();
+                drawSnake();
+                drawApple();
+                checkCollision();
+            }
+        }
+
+        function moveSnake() {
+            const head = {x: snake[0].x, y: snake[0].y};
+            switch(direction) {
+                case 'up': head.y -= 10; break;
+                case 'down': head.y += 10; break;
+                case 'left': head.x -= 10; break;
+                case 'right': head.x += 10; break;
+            }
+            snake.unshift(head);
+            if (head.x === apple.x && head.y === apple.y) {
+                apple = getRandomPosition();
+                score++;
+                updateScoreboard();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function drawSnake() {
+            snake.forEach(segment => {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(segment.x, segment.y, 10, 10);
+            });
+        }
+
+        function drawApple() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(apple.x, apple.y, 10, 10);
+        }
+
+        function getRandomPosition() {
+            return {
+                x: Math.floor(Math.random() * 40) * 10,
+                y: Math.floor(Math.random() * 40) * 10
+            };
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                gameOver();
+            }
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver();
+                }
+            }
+        }
+
+        function gameOver() {
+            clearInterval(gameLoop);
+            if (score > highScore) {
+                highScore = score;
+                updateScoreboard();
+            }
+            alert(`Game Over! Your score: ${score}`);
+            startGame();
+        }
+
+        function updateScoreboard() {
+            scoreboardElement.textContent = `Score: ${score} | High Score: ${highScore}`;
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.fillText('PAUSED', canvas.width / 2 - 50, canvas.height / 2);
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                togglePause();
+            } else if (!isPaused) {
+                switch(e.key) {
+                    case 'ArrowUp': if (direction !== 'down') direction = 'up'; break;
+                    case 'ArrowDown': if (direction !== 'up') direction = 'down'; break;
+                    case 'ArrowLeft': if (direction !== 'right') direction = 'left'; break;
+                    case 'ArrowRight': if (direction !== 'left') direction = 'right'; break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
