@@ -53,9 +53,24 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .button {
+            display: inline-block;
+            padding: 2px 2px;
+            font-size: 14px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
+    <a href="index.html" class="button">Back to homepage</a>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
     <div id="scoreboard">Score: 0 | High Score: 0</div>
 
