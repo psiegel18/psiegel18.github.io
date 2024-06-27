@@ -180,59 +180,23 @@
             }
 
             function saveScore(username, score) {
-                const formData = new FormData();
-                formData.append('name', username);
-                formData.append('score', score);
-
-                fetch('scoreboard.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        console.log('Score saved successfully');
-                        updateTopScores();
-                    } else {
-                        console.error('Error saving score:', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error saving score:', error);
-                });
+                let scores = JSON.parse(localStorage.getItem('tetrisScores')) || [];
+                scores.push({name: username, score: score});
+                scores.sort((a, b) => b.score - a.score);
+                scores = scores.slice(0, 5);  // Keep only top 5
+                localStorage.setItem('tetrisScores', JSON.stringify(scores));
+                updateTopScores();
             }
 
-
             function updateTopScores() {
-    fetch('scoreboard.php')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Server response:', data);  // Log the entire response
-        if (data.status === 'error') {
-            throw new Error(data.message || 'Unknown error');
-        }
-        if (Array.isArray(data.scores)) {
-            topScoresList.innerHTML = '';
-            data.scores.forEach((entry, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${entry.name}: ${entry.score}`;
-                topScoresList.appendChild(li);
-            });
-        } else {
-            throw new Error('Received data is not in the expected format');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating top scores:', error.message);
-        topScoresList.innerHTML = `<li>Error loading scores: ${error.message}</li>`;
-    });
-}
-
+                const scores = JSON.parse(localStorage.getItem('tetrisScores')) || [];
+                topScoresList.innerHTML = '';
+                scores.forEach((entry, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${entry.name}: ${entry.score}`;
+                    topScoresList.appendChild(li);
+                });
+            }
 
             function createPiece() {
                 const shapeIndex = Math.floor(Math.random() * SHAPES.length);
