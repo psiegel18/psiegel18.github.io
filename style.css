@@ -13,3 +13,20 @@ table, th, tr, td{
 table{
     width: 100%;
 }
+.button-container {
+    margin-top: 20px;
+}
+.button {
+    display: inline-block;
+    padding: 2px 2px;
+    font-size: 14px;
+    color: white;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+.button:hover {
+    background-color: #0056b3;
+}
