@@ -79,6 +79,52 @@
             height: 60px;
             margin: 5px;
         }
+        #controlRow {
+            display: flex;
+            justify-content: center;
+        }
+        #swipeToggle {
+            margin-top: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
@@ -87,10 +133,19 @@
     <div id="scoreboard">Score: 0 | High Score: 0</div>
     
     <div id="mobileControls">
-        <button id="upBtn">&#8593;</button><br>
-        <button id="leftBtn">&#8592;</button>
-        <button id="rightBtn">&#8594;</button><br>
-        <button id="downBtn">&#8595;</button>
+        <button id="upBtn">&#8593;</button>
+        <div id="controlRow">
+            <button id="leftBtn">&#8592;</button>
+            <button id="downBtn">&#8595;</button>
+            <button id="rightBtn">&#8594;</button>
+        </div>
+        <div id="swipeToggle">
+            <label class="switch">
+                <input type="checkbox" id="swipeCheckbox">
+                <span class="slider"></span>
+            </label>
+            <span>Swipe Controls</span>
+        </div>
     </div>
 
     <div id="instructionsModal">
@@ -113,6 +168,7 @@
         const scoreboardElement = document.getElementById('scoreboard');
         const mobileControls = document.getElementById('mobileControls');
         const instructionsList = document.getElementById('instructions');
+        const swipeCheckbox = document.getElementById('swipeCheckbox');
 
         let snake, apple, direction, gameLoop;
         let score = 0;
@@ -120,6 +176,7 @@
         let isPaused = false;
         let isMobile = false;
         let cellSize = 10;
+        let touchStartX, touchStartY;
 
         // Check if device is mobile
         function checkMobile() {
@@ -149,6 +206,7 @@
             `;
             const mobileInstructions = `
                 <li>Use the on-screen arrow buttons to control the snake's direction.</li>
+                <li>Toggle the switch to use swipe controls instead of buttons.</li>
                 <li>Eat the red apples to grow longer and increase your score.</li>
                 <li>Avoid hitting the walls or your own tail.</li>
                 <li>The game ends when you crash into a wall or your own tail.</li>
@@ -287,6 +345,33 @@
 
         // Mobile pause
         canvas.addEventListener('click', togglePause);
+
+        // Swipe controls
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling when swiping
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!swipeCheckbox.checked) return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0 && direction !== 'left') direction = 'right';
+                else if (dx < 0 && direction !== 'right') direction = 'left';
+            } else {
+                if (dy > 0 && direction !== 'up') direction = 'down';
+                else if (dy < 0 && direction !== 'down') direction = 'up';
+            }
+        });
 
         // Start the game setup
         setupGame();

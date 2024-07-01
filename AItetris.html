@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -361,6 +361,405 @@
                     }
                     drawBoard();
                 }
+            });
+
+            window.addEventListener('resize', resizeGame);
+
+            initGame();
+        });
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Tetris</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+        .side-panel {
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .side-panel h2 {
+            margin-top: 0;
+        }
+        .side-panel ul {
+            padding-left: 20px;
+        }
+        canvas {
+            border: 2px solid #333;
+            max-width: 100%;
+            max-height: 70vh;
+        }
+        #score-display {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 2px 2px;
+            font-size: 14px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #top-scores {
+            margin-top: 20px;
+        }
+        #top-scores h3 {
+            margin-bottom: 5px;
+        }
+        #top-scores-list {
+            margin-top: 0;
+            padding-left: 20px;
+        }
+        #top-scores-list li {
+            margin-bottom: 5px;
+        }
+        #mobile-controls {
+            display: none;
+            margin-top: 20px;
+        }
+        #mobile-controls button {
+            font-size: 24px;
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+        }
+        #control-row {
+            display: flex;
+            justify-content: center;
+        }
+        #swipe-toggle {
+            margin-top: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        @media (min-width: 768px) {
+            .game-container {
+                flex-direction: row;
+            }
+            .side-panel {
+                margin-right: 20px;
+                margin-bottom: 0;
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="button">Back to homepage</a>
+    <div class="game-container">
+        <div class="side-panel">
+            <div id="score-display">Current Score: 0</div>
+            <h2>Instructions</h2>
+            <ul id="instructions">
+                <!-- Instructions will be set dynamically -->
+            </ul>
+            <div id="top-scores">
+                <h3>Top 5 Scores</h3>
+                <ol id="top-scores-list"></ol>
+            </div>
+        </div>
+        <canvas id="tetrisCanvas"></canvas>
+        <div id="mobile-controls">
+            <button id="rotate-btn">&#8634;</button>
+            <div id="control-row">
+                <button id="left-btn">&#8592;</button>
+                <button id="down-btn">&#8595;</button>
+                <button id="right-btn">&#8594;</button>
+            </div>
+            <div id="swipe-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="swipe-checkbox">
+                    <span class="slider"></span>
+                </label>
+                <span>Swipe Controls</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('tetrisCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreDisplay = document.getElementById('score-display');
+            const topScoresList = document.getElementById('top-scores-list');
+            const instructionsList = document.getElementById('instructions');
+            const mobileControls = document.getElementById('mobile-controls');
+            const swipeCheckbox = document.getElementById('swipe-checkbox');
+
+            let BLOCK_SIZE, BOARD_WIDTH, BOARD_HEIGHT;
+            let board;
+
+            const SHAPES = [
+                [[1, 1, 1, 1]],
+                [[1, 1], [1, 1]],
+                [[1, 1, 1], [0, 1, 0]],
+                [[1, 1, 1], [1, 0, 0]],
+                [[1, 1, 1], [0, 0, 1]],
+                [[1, 1, 0], [0, 1, 1]],
+                [[0, 1, 1], [1, 1, 0]]
+            ];
+
+            const COLORS = [
+                '#00FFFF', '#FFFF00', '#FF00FF', '#FF0000',
+                '#00FF00', '#0000FF', '#FFA500'
+            ];
+
+            let currentPiece = null;
+            let currentColor = '';
+            let gameInterval = null;
+            let isPaused = false;
+            let isGameStarted = false;
+            let score = 0;
+            let isMobile = false;
+
+            function checkMobile() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+
+            function resizeGame() {
+                const gameContainer = document.querySelector('.game-container');
+                const sidePanelWidth = document.querySelector('.side-panel').offsetWidth;
+                const availableWidth = gameContainer.offsetWidth - (isMobile ? 0 : sidePanelWidth) - 40;
+                const availableHeight = gameContainer.offsetHeight - (isMobile ? 200 : 40);
+
+                BLOCK_SIZE = Math.floor(Math.min(availableWidth / 10, availableHeight / 20));
+                BOARD_WIDTH = 10;
+                BOARD_HEIGHT = 20;
+
+                canvas.width = BLOCK_SIZE * BOARD_WIDTH;
+                canvas.height = BLOCK_SIZE * BOARD_HEIGHT;
+
+                board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+
+                drawBoard();
+            }
+
+            function initGame() {
+                isMobile = checkMobile();
+                if (isMobile) {
+                    mobileControls.style.display = 'block';
+                }
+                setInstructions();
+                resizeGame();
+                updateTopScores();
+                drawStartScreen();
+            }
+
+            function setInstructions() {
+                const desktopInstructions = `
+                    <li>Space: Start game</li>
+                    <li>Left Arrow: Move left</li>
+                    <li>Right Arrow: Move right</li>
+                    <li>Down Arrow: Move down</li>
+                    <li>Up Arrow: Rotate</li>
+                    <li>P: Pause/Resume</li>
+                    <li>Q: Quit game</li>
+                `;
+                const mobileInstructions = `
+                    <li>Tap: Start game</li>
+                    <li>Use on-screen buttons or swipe to control</li>
+                    <li>Toggle switch for swipe controls</li>
+                    <li>Tap canvas to pause/resume</li>
+                    <li>Swipe down to quit game</li>
+                `;
+                instructionsList.innerHTML = isMobile ? mobileInstructions : desktopInstructions;
+            }
+
+            function startGame() {
+                if (!isGameStarted) {
+                    isGameStarted = true;
+                    score = 0;
+                    updateScoreDisplay();
+                    createPiece();
+                    gameInterval = setInterval(gameLoop, 500);
+                }
+            }
+
+            function endGame() {
+                isGameStarted = false;
+                isPaused = false;
+                clearInterval(gameInterval);
+
+                const username = prompt("Game Over! Your score: " + score + "\nEnter your name:");
+                if (username) {
+                    saveScore(username, score);
+                }
+
+                board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+                currentPiece = null;
+                score = 0;
+                updateScoreDisplay();
+                drawStartScreen();
+            }
+
+            // ... (keep all other functions as they are)
+
+            function togglePause() {
+                isPaused = !isPaused;
+                drawBoard();
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !isGameStarted) {
+                    startGame();
+                    return;
+                }
+
+                if (isGameStarted) {
+                    if (e.key.toLowerCase() === 'q') {
+                        endGame();
+                        return;
+                    }
+
+                    if (!isPaused) {
+                        switch(e.key) {
+                            case 'ArrowLeft':
+                                if (canMove(-1, 0)) currentPiece.x--;
+                                break;
+                            case 'ArrowRight':
+                                if (canMove(1, 0)) currentPiece.x++;
+                                break;
+                            case 'ArrowDown':
+                                if (canMove(0, 1)) currentPiece.y++;
+                                break;
+                            case 'ArrowUp':
+                                rotate();
+                                break;
+                        }
+                    }
+                    if (e.key.toLowerCase() === 'p') {
+                        togglePause();
+                    }
+                    drawBoard();
+                }
+            });
+
+            // Mobile touch controls
+            let touchStartX, touchStartY;
+
+            canvas.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                if (!isGameStarted) {
+                    startGame();
+                } else {
+                    togglePause();
+                }
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Prevent scrolling when swiping
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                if (!swipeCheckbox.checked || !isGameStarted || isPaused) return;
+                
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0 && canMove(1, 0)) currentPiece.x++;
+                    else if (dx < 0 && canMove(-1, 0)) currentPiece.x--;
+                } else {
+                    if (dy > 0) {
+                        if (dy > 100) { // Long swipe down to quit
+                            endGame();
+                            return;
+                        } else if (canMove(0, 1)) {
+                            currentPiece.y++;
+                        }
+                    } else if (dy < 0) {
+                        rotate();
+                    }
+                }
+                drawBoard();
+            });
+
+            // Mobile button controls
+            document.getElementById('left-btn').addEventListener('click', () => {
+                if (canMove(-1, 0)) currentPiece.x--;
+                drawBoard();
+            });
+            document.getElementById('right-btn').addEventListener('click', () => {
+                if (canMove(1, 0)) currentPiece.x++;
+                drawBoard();
+            });
+            document.getElementById('down-btn').addEventListener('click', () => {
+                if (canMove(0, 1)) currentPiece.y++;
+                drawBoard();
+            });
+            document.getElementById('rotate-btn').addEventListener('click', () => {
+                rotate();
+                drawBoard();
             });
 
             window.addEventListener('resize', resizeGame);
