@@ -8,17 +8,26 @@
         body {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
+            padding: 0;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-sizing: border-box;
         }
         #gameCanvas {
             border: 2px solid #333;
             max-width: 100%;
-            max-height: 80vh;
+            max-height: calc(100vh - 150px);
         }
         #scoreboard {
             margin-top: 10px;
@@ -57,7 +66,7 @@
         }
         .button {
             display: inline-block;
-            padding: 2px 2px;
+            padding: 5px 10px;
             font-size: 14px;
             color: white;
             background-color: #007bff;
@@ -65,6 +74,9 @@
             border-radius: 5px;
             text-decoration: none;
             transition: background-color 0.3s ease;
+            position: absolute;
+            top: 10px;
+            left: 10px;
         }
         .button:hover {
             background-color: #0056b3;
@@ -83,68 +95,23 @@
             display: flex;
             justify-content: center;
         }
-        #swipeToggle {
-            margin-top: 10px;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: #2196F3;
-        }
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
     </style>
 </head>
 <body>
     <a href="index.html" class="button">Back to homepage</a>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <div id="scoreboard">Score: 0 | High Score: 0</div>
-    
-    <div id="mobileControls">
-        <button id="upBtn">&#8593;</button>
-        <div id="controlRow">
-            <button id="leftBtn">&#8592;</button>
-            <button id="downBtn">&#8595;</button>
-            <button id="rightBtn">&#8594;</button>
-        </div>
-        <div id="swipeToggle">
-            <label class="switch">
-                <input type="checkbox" id="swipeCheckbox">
-                <span class="slider"></span>
-            </label>
-            <span>Swipe Controls</span>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="scoreboard">Score: 0 | High Score: 0</div>
+        
+        <div id="mobileControls">
+            <div id="controlRow">
+                <button id="upBtn">&#8593;</button>
+            </div>
+            <div id="controlRow">
+                <button id="leftBtn">&#8592;</button>
+                <button id="downBtn">&#8595;</button>
+                <button id="rightBtn">&#8594;</button>
+            </div>
         </div>
     </div>
 
@@ -168,7 +135,6 @@
         const scoreboardElement = document.getElementById('scoreboard');
         const mobileControls = document.getElementById('mobileControls');
         const instructionsList = document.getElementById('instructions');
-        const swipeCheckbox = document.getElementById('swipeCheckbox');
 
         let snake, apple, direction, gameLoop;
         let score = 0;
@@ -178,24 +144,31 @@
         let cellSize = 10;
         let touchStartX, touchStartY;
 
-        // Check if device is mobile
         function checkMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
 
-        // Set up game based on device
         function setupGame() {
             isMobile = checkMobile();
             if (isMobile) {
-                mobileControls.style.display = 'block';
-                canvas.width = Math.min(400, window.innerWidth - 20);
-                canvas.height = canvas.width;
-                cellSize = canvas.width / 40;
+                mobileControls.style.display = 'flex';
+                mobileControls.style.flexDirection = 'column';
+                mobileControls.style.alignItems = 'center';
             }
+            resizeCanvas();
             setInstructions();
         }
 
-        // Set instructions based on device
+        function resizeCanvas() {
+            const gameContainer = document.querySelector('.game-container');
+            const maxWidth = gameContainer.clientWidth - 40;
+            const maxHeight = isMobile ? window.innerHeight - 250 : window.innerHeight - 100;
+            const size = Math.min(maxWidth, maxHeight);
+            canvas.width = size;
+            canvas.height = size;
+            cellSize = Math.floor(size / 40);
+        }
+
         function setInstructions() {
             const desktopInstructions = `
                 <li>Use the arrow keys to control the snake's direction.</li>
@@ -205,8 +178,7 @@
                 <li>Press 'P' or 'Esc' to pause/resume the game.</li>
             `;
             const mobileInstructions = `
-                <li>Use the on-screen arrow buttons to control the snake's direction.</li>
-                <li>Toggle the switch to use swipe controls instead of buttons.</li>
+                <li>Use the on-screen arrow buttons or swipe to control the snake's direction.</li>
                 <li>Eat the red apples to grow longer and increase your score.</li>
                 <li>Avoid hitting the walls or your own tail.</li>
                 <li>The game ends when you crash into a wall or your own tail.</li>
@@ -215,10 +187,8 @@
             instructionsList.innerHTML = isMobile ? mobileInstructions : desktopInstructions;
         }
 
-        // Show instructions modal
         modal.style.display = 'block';
 
-        // Close modal and start game
         closeBtn.onclick = startGame;
         window.onclick = function(event) {
             if (event.target == modal) {
@@ -228,7 +198,6 @@
 
         function startGame() {
             modal.style.display = 'none';
-            setupGame();
             snake = [{x: 20*cellSize, y: 20*cellSize}, {x: 19*cellSize, y: 20*cellSize}, {x: 18*cellSize, y: 20*cellSize}];
             apple = getRandomPosition();
             direction = 'right';
@@ -258,7 +227,9 @@
                 case 'right': head.x += cellSize; break;
             }
             snake.unshift(head);
-            if (head.x === apple.x && head.y === apple.y) {
+
+            // Check if snake ate the apple
+            if (Math.abs(head.x - apple.x) < cellSize && Math.abs(head.y - apple.y) < cellSize) {
                 apple = getRandomPosition();
                 score++;
                 updateScoreboard();
@@ -270,13 +241,13 @@
         function drawSnake() {
             snake.forEach(segment => {
                 ctx.fillStyle = 'green';
-                ctx.fillRect(segment.x, segment.y, cellSize, cellSize);
+                ctx.fillRect(segment.x, segment.y, cellSize - 1, cellSize - 1);
             });
         }
 
         function drawApple() {
             ctx.fillStyle = 'red';
-            ctx.fillRect(apple.x, apple.y, cellSize, cellSize);
+            ctx.fillRect(apple.x, apple.y, cellSize - 1, cellSize - 1);
         }
 
         function getRandomPosition() {
@@ -323,7 +294,6 @@
             }
         }
 
-        // Desktop controls
         document.addEventListener('keydown', (e) => {
             if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
                 togglePause();
@@ -337,28 +307,23 @@
             }
         });
 
-        // Mobile controls
         document.getElementById('upBtn').addEventListener('click', () => { if (direction !== 'down') direction = 'up'; });
         document.getElementById('downBtn').addEventListener('click', () => { if (direction !== 'up') direction = 'down'; });
         document.getElementById('leftBtn').addEventListener('click', () => { if (direction !== 'right') direction = 'left'; });
         document.getElementById('rightBtn').addEventListener('click', () => { if (direction !== 'left') direction = 'right'; });
 
-        // Mobile pause
         canvas.addEventListener('click', togglePause);
 
-        // Swipe controls
         canvas.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
         });
 
         canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // Prevent scrolling when swiping
+            e.preventDefault();
         });
 
         canvas.addEventListener('touchend', (e) => {
-            if (!swipeCheckbox.checked) return;
-            
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
             const dx = touchEndX - touchStartX;
@@ -373,7 +338,20 @@
             }
         });
 
-        // Start the game setup
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            if (snake) {
+                // Adjust snake and apple positions after resize
+                const scaleX = canvas.width / (snake.length * cellSize);
+                const scaleY = canvas.height / (snake.length * cellSize);
+                snake = snake.map(segment => ({
+                    x: Math.floor(segment.x * scaleX),
+                    y: Math.floor(segment.y * scaleY)
+                }));
+                apple = getRandomPosition();
+            }
+        });
+
         setupGame();
     </script>
 </body>
