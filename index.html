@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,127 +6,103 @@
     <title>My Games and Tools</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: #f8f9fa;
+            color: #333;
         }
         .container {
             text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 90%;
         }
         h1 {
-            color: #333;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
         }
         .button-container {
-            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
         }
         .button {
-            display: inline-block;
-            padding: 10px 20px;
-            margin: 0 10px;
-            font-size: 18px;
+            padding: 12px 24px;
+            font-size: 1rem;
             color: white;
-            background-color: #007bff;
+            background-color: #3498db;
             border: none;
             border-radius: 5px;
             text-decoration: none;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            flex: 1 1 200px;
+            max-width: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
         .button:hover {
-            background-color: #0056b3;
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .button.disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .button.disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        .warning {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 1rem;
+            display: none;
+        }
+        @media (max-width: 600px) {
+            .button {
+                flex-basis: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to My Games and Tools</h1>
+        <h1>Welcome to Preston's Games and Tools</h1>
         <div class="button-container">
             <a href="BDayCalc.html" class="button">Birthday->Weekday Calculator</a>
             <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="button">My Roadtrips</a>
-            <a href="AItetris.html" class="button">Play Tetris made by ClaudeAI</a>
+            <a href="AItetris.html" class="button" id="tetrisButton">Play Tetris made by ClaudeAI</a>
             <a href="snake.html" class="button">Play Snake made by ClaudeAI</a>
         </div>
+        <p class="warning" id="tetrisWarning">Tetris is not supported on mobile devices.</p>
     </div>
+
+    <script>
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        if (isMobileDevice()) {
+            const tetrisButton = document.getElementById('tetrisButton');
+            const tetrisWarning = document.getElementById('tetrisWarning');
+
+            tetrisButton.classList.add('disabled');
+            tetrisButton.removeAttribute('href');
+            tetrisButton.style.pointerEvents = 'none';
+            tetrisWarning.style.display = 'block';
+        }
+    </script>
 </body>
 </html>
- -->
- <!DOCTYPE html>
- <html lang="en">
- <head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <title>My Games and Tools</title>
-     <style>
-         body {
-             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-             display: flex;
-             justify-content: center;
-             align-items: center;
-             min-height: 100vh;
-             margin: 0;
-             background-color: #f8f9fa;
-             color: #333;
-         }
-         .container {
-             text-align: center;
-             padding: 2rem;
-             background-color: white;
-             border-radius: 10px;
-             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-             max-width: 800px;
-             width: 90%;
-         }
-         h1 {
-             color: #2c3e50;
-             margin-bottom: 1.5rem;
-             font-size: 2.5rem;
-         }
-         .button-container {
-             display: flex;
-             flex-wrap: wrap;
-             justify-content: center;
-             gap: 1rem;
-         }
-         .button {
-             padding: 12px 24px;
-             font-size: 1rem;
-             color: white;
-             background-color: #3498db;
-             border: none;
-             border-radius: 5px;
-             text-decoration: none;
-             transition: all 0.3s ease;
-             flex: 1 1 200px;
-             max-width: 250px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             text-align: center;
-         }
-         .button:hover {
-             background-color: #2980b9;
-             transform: translateY(-2px);
-             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-         }
-         @media (max-width: 600px) {
-             .button {
-                 flex-basis: 100%;
-             }
-         }
-     </style>
- </head>
- <body>
-     <div class="container">
-         <h1>Welcome to Preston's Games and Tools</h1>
-         <div class="button-container">
-             <a href="BDayCalc.html" class="button">Birthday->Weekday Calculator</a>
-             <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="button">My Roadtrips</a>
-             <a href="AItetris.html" class="button">Play Tetris made by ClaudeAI</a>
-             <a href="snake.html" class="button">Play Snake made by ClaudeAI</a>
-         </div>
-     </div>
- </body>
- </html>
