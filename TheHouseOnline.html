@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyPortalForTheHouse</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        background-color: #f8f9fa;
+        color: #333;
+      }
+      .container {
+        text-align: center;
+        padding: 2rem;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 800px;
+        width: 90%;
+      }
+      h1 {
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+        font-size: 2.5rem;
+      }
+      .button-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+      }
+      .button {
+        padding: 12px 24px;
+        font-size: 1rem;
+        color: white;
+        background-color: #3498db;
+        border: none;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        flex: 1 1 200px;
+        max-width: 250px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .button:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .button.disabled {
+        background-color: #bdc3c7;
+        cursor: not-allowed;
+      }
+      .button.disabled:hover {
+        transform: none;
+        box-shadow: none;
+      }
+      .warning {
+        font-style: italic;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        display: none;
+        color: red;
+      }
+      @media (max-width: 600px) {
+        .button {
+          flex-basis: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Which Environment do you want to view?</h1>
+      <div class="button-container">
+        <a href="https://test-the-house-online.vercel.app/" class="button">Test</a>
+        <a href="https://the-house-online.vercel.app/"class="button">Prd</a>
+      </div>
+    </div>
+  </body>
+</html>
