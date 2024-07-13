@@ -7,15 +7,26 @@
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .top-nav {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+      }
+      .container {
+        flex-grow: 1;
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        background-color: #f8f9fa;
-        color: #333;
       }
-      .container {
+      .content {
         text-align: center;
         padding: 2rem;
         background-color: white;
@@ -57,21 +68,6 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       }
-      .button.disabled {
-        background-color: #bdc3c7;
-        cursor: not-allowed;
-      }
-      .button.disabled:hover {
-        transform: none;
-        box-shadow: none;
-      }
-      .warning {
-        font-style: italic;
-        font-size: 0.8rem;
-        margin-top: 0.5rem;
-        display: none;
-        color: red;
-      }
       @media (max-width: 600px) {
         .button {
           flex-basis: 100%;
@@ -80,15 +76,16 @@
     </style>
   </head>
   <body>
-    <div class="button-container">
-        <a href="index.html" class="button">Back to homepage</a>
-    </div>
-    <hr>
+    <nav class="top-nav">
+      <a href="index.html" class="button">Back to homepage</a>
+    </nav>
     <div class="container">
-      <h1>Which Environment do you want to view?</h1>
-      <div class="button-container">
-        <a href="https://thehouse-test.vercel.app/" class="button">Testing</a>
-        <a href="https://thehouse-online.vercel.app/"class="button">Production</a>
+      <div class="content">
+        <h1>Which Environment do you want to view?</h1>
+        <div class="button-container">
+          <a href="https://thehouse-test.vercel.app/" class="button">Testing</a>
+          <a href="https://thehouse-online.vercel.app/" class="button">Production</a>
+        </div>
       </div>
     </div>
   </body>
