@@ -50,7 +50,7 @@
       .button {
         font-size: 2.5rem;
         color: white;
-        background-color: #3498db;
+        background-color: #db3434;
         border: none;
         border-radius: 50%;
         text-decoration: none;
@@ -62,15 +62,40 @@
         justify-content: center;
       }
       .button:hover {
+        background-color: #b92929;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .button1 {
+        font-size: 2.5rem;
+        color: white;
+        background-color: #3498db;
+        border: none;
+        border-radius: 50%;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .button1:hover {
         background-color: #2980b9;
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .button-text1 {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        display: block;
+        color: #333;
       }
       .button-text {
         font-size: 0.8rem;
         margin-top: 0.5rem;
         display: block;
-        color: #333;
+        color: #e4dfdf;
       }
       .back-button {
         font-size: 1.5rem;
@@ -96,25 +121,62 @@
   </head>
   <body>
     <nav class="top-nav">
-      <a href="index.html" class="button back-button" title="Back to homepage">
+      <a href="index.html" class="button1 back-button" title="Back to homepage">
         <i class="fas fa-arrow-left"></i>
       </a>
     </nav>
-    <div class="container">
+    <div class="container" id="Environments">
       <div class="content">
         <h1>Which Environment do you want to view?</h1>
         <div class="button-container">
           <div>
-            <a href="https://thehouse-test.vercel.app/" class="button" title="Testing Environment">
+            <a href="https://thehouse-test.vercel.app/" class="button1" title="Testing Environment" target="_blank" rel="noopener">
               <i class="fas fa-vial"></i>
             </a>
-            <span class="button-text">Testing</span>
+            <span class="button-text1">Testing</span>
           </div>
           <div>
-            <a href="https://thehouse-online.vercel.app/" class="button" title="Production Environment">
+            <a href="https://thehouse-online.vercel.app/" class="button1" title="Production Environment" target="_blank" rel="noopener">
               <i class="fas fa-globe"></i>
             </a>
-            <span class="button-text">Production</span>
+            <span class="button-text1">Production</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container" id="otherResources">
+      <div class="content" style="background-color: black;">
+        <h1 style="color: snow;">Other Resources</h1>
+        <div class="button-container">
+          <div>
+            <a href="https://github.com/psiegel18/TheHouseOnline" class="button" title="GitHub" target="_blank" rel="noopener">
+              <i class="fa-brands fa-github"></i>
+            </a>
+            <span class="button-text">GitHub</span>
+          </div>
+          <div>
+            <a href="https://charts.mongodb.com/charts-project-0-ejhezqb/dashboards/668cb35e-bb8d-46c7-8042-9a9e42603dfa" class="button" title="MongoDB" target="_blank" rel="noopener">
+              <i class="fas fa-database"></i>
+            </a>
+            <span class="button-text">MongoDB</span>
+          </div>
+          <div>
+            <a href="https://vercel.com/the-house/the-house-online" class="button" title="Vercel" target="_blank" rel="noopener">
+              <i class="fas fa-pager"></i>
+            </a>
+            <span class="button-text">Vercel</span>
+          </div>
+          <div>
+            <a href="https://console.cloudinary.com/console/c-e9b0009d8f78ba26c60314eaeb5904/media_library/folders/c84e6f531e097ec2c0ebab725de5160bf3?view_mode=mosaic" class="button" title="Cloudinary" target="_blank" rel="noopener">
+              <i class="fas fa-images"></i>
+            </a>
+            <span class="button-text">Cloudinary</span>
+          </div>
+          <div>
+            <a href="https://claude.ai/new" class="button" title="Claude_A_I" target="_blank" rel="noopener">
+              <i class="fas fa-robot"></i>
+            </a>
+            <span class="button-text">Claude.AI</span>
           </div>
         </div>
       </div>

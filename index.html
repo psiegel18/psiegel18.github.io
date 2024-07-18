@@ -30,16 +30,23 @@
         margin-bottom: 1.5rem;
         font-size: 2.5rem;
       }
-      .button-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+      .button-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 1.5rem;
+        justify-content: center;
+        max-width: 600px; /* Adjust this value as needed */
+        margin: 0 auto; /* Centers the grid horizontally */
+      }
+      .button-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       .button {
         font-size: 2.5rem;
         color: white;
-        background-color: #3498db;
+        background-color: #7a7a7a;
         border: none;
         border-radius: 50%;
         text-decoration: none;
@@ -52,7 +59,7 @@
         position: relative;
       }
       .button:hover {
-        background-color: #2980b9;
+        background-color: #5f5f5f;
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       }
@@ -78,8 +85,8 @@
         color: red;
       }
       @media (max-width: 600px) {
-        .button-container {
-          gap: 1rem;
+        .button-grid {
+          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
         }
         .button {
           font-size: 2rem;
@@ -92,37 +99,37 @@
   <body>
     <div class="container">
       <h1>Welcome to Preston's Games and Tools</h1>
-      <div class="button-container">
-        <div>
-          <a href="BDayCalc.html" class="button">
+      <div class="button-grid">
+        <div class="button-wrapper">
+          <a href="BDayCalc.html" class="button" style="color: palevioletred;;">
             <i class="fas fa-birthday-cake"></i>
           </a>
           <span class="button-text">Birthday Calculator</span>
         </div>
-        <div>
-          <a href="TravelMapPreview.html" class="button">
+        <div class="button-wrapper">
+          <a href="TravelMapPreview.html" class="button" style="color: skyblue;">
             <i class="fas fa-map-marked-alt"></i>
           </a>
           <span class="button-text">My Roadtrips</span>
         </div>
-        <div>
-          <a href="AItetris.html" class="button" id="tetrisButton">
+        <div class="button-wrapper">
+          <a href="TheHouseOnline.html" class="button">
+            <i class="fas fa-home" style="color: orange;"></i>
+          </a>
+          <span class="button-text">TheHouseOnline</span>
+        </div>
+        <div class="button-wrapper">
+          <a href="AItetris.html" class="button" id="tetrisButton" style="color: lightsalmon">
             <i class="fas fa-cube"></i>
           </a>
           <span class="button-text">Tetris by ClaudeAI</span>
           <span class="warning" id="tetrisWarning">Not supported on mobile</span>
         </div>
-        <div>
-          <a href="snake.html" class="button">
-            <i class="fas fa-snake"></i>
+        <div class="button-wrapper">
+          <a href="snake.html" class="button" style="color: lawngreen;">
+            <i class="fas fa-staff-snake"></i>
           </a>
           <span class="button-text">Snake by ClaudeAI</span>
-        </div>
-        <div>
-          <a href="TheHouseOnline.html" class="button">
-            <i class="fas fa-home"></i>
-          </a>
-          <span class="button-text">TheHouseOnline</span>
         </div>
       </div>
     </div>
