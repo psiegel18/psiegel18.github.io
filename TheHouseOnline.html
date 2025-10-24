@@ -10,121 +10,242 @@
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
-        padding: 20px;
-        background-color: #f8f9fa;
-        color: #333;
+        padding: 0;
+        background: #1a1a2e;
+        color: #eee;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
       }
-      .top-nav {
-        position: absolute;
-        top: 20px;
-        left: 20px;
+
+      /* Navigation Bar */
+      .navbar {
+        background: linear-gradient(145deg, #16213e, #0f3460);
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
+
+      .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .nav-brand {
+        font-size: 1.3rem;
+        font-weight: 300;
+        color: #eee;
+        text-decoration: none;
+        letter-spacing: 0.5px;
+      }
+
+      .nav-brand i {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-right: 0.5rem;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .nav-link {
+        color: #ccc;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .nav-link:hover {
+        background: rgba(102, 126, 234, 0.2);
+        color: #fff;
+        transform: translateY(-2px);
+      }
+
+      .nav-link.active {
+        background: rgba(102, 126, 234, 0.3);
+        color: #fff;
+      }
+
+      .nav-link i {
+        font-size: 0.9rem;
+      }
+
       .container {
         flex-grow: 1;
         display: flex;
         justify-content: center;
         align-items: center;
+        padding: 2rem;
+        gap: 2rem;
+        flex-wrap: wrap;
       }
       .content {
         text-align: center;
-        padding: 2rem;
-        background-color: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        max-width: 800px;
+        padding: 2.5rem;
+        background: linear-gradient(145deg, #16213e, #0f3460);
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        max-width: 500px;
         width: 90%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
       h1 {
-        color: #2c3e50;
-        margin-bottom: 1.5rem;
-        font-size: 2.5rem;
+        color: #eee;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+        font-weight: 300;
+        letter-spacing: 1px;
       }
       .button-container {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 1.5rem;
+        gap: 2rem;
       }
       .button {
         font-size: 2.5rem;
-        color: white;
-        background-color: #db3434;
-        border: none;
+        background: linear-gradient(145deg, #16213e, #0f3460);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 50%;
         text-decoration: none;
         transition: all 0.3s ease;
-        width: 80px;
-        height: 80px;
+        width: 90px;
+        height: 90px;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
       }
+
+      .button i {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        transition: transform 0.3s ease;
+      }
+
       .button:hover {
-        background-color: #b92929;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(145deg, #0f3460, #16213e);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        border-color: #667eea;
       }
+
+      .button:hover i {
+        transform: scale(1.2) rotate(5deg);
+      }
+
       .button1 {
         font-size: 2.5rem;
-        color: white;
-        background-color: #3498db;
-        border: none;
+        background: linear-gradient(145deg, #16213e, #0f3460);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 50%;
         text-decoration: none;
         transition: all 0.3s ease;
-        width: 80px;
-        height: 80px;
+        width: 90px;
+        height: 90px;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
       }
+
+      .button1 i {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        transition: transform 0.3s ease;
+      }
+
       .button1:hover {
-        background-color: #2980b9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(145deg, #0f3460, #16213e);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        border-color: #667eea;
       }
-      .button-text1 {
-        font-size: 0.8rem;
-        margin-top: 0.5rem;
+
+      .button1:hover i {
+        transform: scale(1.2) rotate(5deg);
+      }
+
+      .button-text1, .button-text {
+        font-size: 0.85rem;
+        margin-top: 0.7rem;
         display: block;
-        color: #333;
+        color: #ccc;
       }
-      .button-text {
-        font-size: 0.8rem;
-        margin-top: 0.5rem;
-        display: block;
-        color: #e4dfdf;
-      }
-      .back-button {
-        font-size: 1.5rem;
-        width: 50px;
-        height: 50px;
-      }
-      @media (max-width: 600px) {
+
+      @media (max-width: 768px) {
+        .navbar {
+          padding: 1rem;
+        }
+        .nav-container {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .nav-links {
+          width: 100%;
+          flex-direction: column;
+        }
+        .nav-link {
+          width: 100%;
+        }
+        .container {
+          flex-direction: column;
+          padding: 1rem;
+        }
+        .content {
+          padding: 2rem;
+        }
         .button-container {
-          gap: 1rem;
+          gap: 1.5rem;
         }
-        .button {
+        .button, .button1 {
           font-size: 2rem;
-          width: 60px;
-          height: 60px;
+          width: 70px;
+          height: 70px;
         }
-        .back-button {
-          font-size: 1.2rem;
-          width: 40px;
-          height: 40px;
+        h1 {
+          font-size: 1.6rem;
         }
       }
     </style>
   </head>
   <body>
-    <nav class="top-nav">
-      <a href="index.html" class="button1 back-button" title="Back to homepage">
-        <i class="fas fa-arrow-left"></i>
-      </a>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <a href="index.html" class="nav-brand">
+          <i class="fas fa-home"></i>
+          Preston's Hub
+        </a>
+        <div class="nav-links">
+          <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
+          <a href="BDayCalc.html" class="nav-link"><i class="fas fa-birthday-cake"></i> Birthday Calc</a>
+          <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="nav-link" target="_blank" rel="noopener"><i class="fas fa-map-marked-alt"></i> Roadtrips</a>
+          <a href="TheHouseOnline.html" class="nav-link active"><i class="fas fa-house"></i> TheHouse</a>
+          <a href="AItetris.html" class="nav-link"><i class="fas fa-cube"></i> Tetris</a>
+          <a href="snake.html" class="nav-link"><i class="fas fa-staff-snake"></i> Snake</a>
+          <a href="https://prct.psiegel.org" class="nav-link" target="_blank" rel="noopener"><i class="fas fa-chart-bar"></i> PRCT</a>
+        </div>
+      </div>
     </nav>
     <div class="container" id="Environments">
       <div class="content">
@@ -146,8 +267,8 @@
       </div>
     </div>
     <div class="container" id="otherResources">
-      <div class="content" style="background-color: black;">
-        <h1 style="color: snow;">Other Resources</h1>
+      <div class="content">
+        <h1>Other Resources</h1>
         <div class="button-container">
           <div>
             <a href="https://github.com/psiegel18/TheHouseOnline" class="button" title="GitHub" target="_blank" rel="noopener">

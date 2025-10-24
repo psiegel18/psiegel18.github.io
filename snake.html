@@ -4,17 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <title>Snake Game</title>
     <style>
         body {
             display: flex;
             flex-direction: column;
-            align-items: center;
             height: 100vh;
             margin: 0;
             padding: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: #eee;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .nav-brand {
+            font-size: 1.3rem;
+            font-weight: 300;
+            color: #eee;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-brand i {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-right: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #ccc;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+        }
+
+        .nav-link i {
+            font-size: 0.9rem;
         }
         .game-container {
             display: flex;
@@ -26,61 +94,63 @@
             box-sizing: border-box;
         }
         #gameCanvas {
-            border: 2px solid #333;
+            border: 2px solid #667eea;
             max-width: 100%;
-            max-height: calc(100vh - 150px);
+            max-height: calc(100vh - 250px);
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
         #scoreboard {
-            margin-top: 10px;
-            font-size: 18px;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            color: #eee;
+            font-weight: 300;
         }
         #instructionsModal {
             display: none;
             position: fixed;
-            z-index: 1;
+            z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0,0,0,0.7);
         }
         .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            margin: 10% auto;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
             width: 80%;
             max-width: 500px;
+            color: #eee;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
+
+        .modal-content h2 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+
+        .modal-content ul {
+            color: #ccc;
+            line-height: 1.8;
+        }
+
         .close {
-            color: #aaa;
+            color: #ccc;
             float: right;
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.3s ease;
         }
         .close:hover,
         .close:focus {
-            color: #000;
+            color: #fff;
             text-decoration: none;
             cursor: pointer;
-        }
-        .button {
-            display: inline-block;
-            padding: 5px 10px;
-            font-size: 14px;
-            color: white;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-            position: absolute;
-            top: 10px;
-            left: 10px;
-        }
-        .button:hover {
-            background-color: #0056b3;
         }
         #mobileControls {
             display: none;
@@ -91,15 +161,59 @@
             width: 60px;
             height: 60px;
             margin: 5px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        #mobileControls button:active {
+            transform: scale(0.95);
         }
         #controlRow {
             display: flex;
             justify-content: center;
         }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+            }
+            .nav-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .nav-links {
+                width: 100%;
+                flex-direction: column;
+            }
+            .nav-link {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <a href="index.html" class="button">Homepage</a>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <i class="fas fa-home"></i>
+                Preston's Hub
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                <a href="BDayCalc.html" class="nav-link"><i class="fas fa-birthday-cake"></i> Birthday Calc</a>
+                <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="nav-link" target="_blank" rel="noopener"><i class="fas fa-map-marked-alt"></i> Roadtrips</a>
+                <a href="TheHouseOnline.html" class="nav-link"><i class="fas fa-house"></i> TheHouse</a>
+                <a href="AItetris.html" class="nav-link"><i class="fas fa-cube"></i> Tetris</a>
+                <a href="snake.html" class="nav-link active"><i class="fas fa-staff-snake"></i> Snake</a>
+                <a href="https://prct.psiegel.org" class="nav-link" target="_blank" rel="noopener"><i class="fas fa-chart-bar"></i> PRCT</a>
+            </div>
+        </div>
+    </nav>
     <div class="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="scoreboard">Score: 0 | High Score: 0</div>
