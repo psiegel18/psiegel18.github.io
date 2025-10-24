@@ -15,24 +15,27 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      background-color: #f8f9fa;
-      color: #333;
+      background: #1a1a2e;
+      color: #eee;
     }
 
     .container {
       text-align: center;
-      padding: 2rem;
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 2.5rem;
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
       max-width: 800px;
       width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     h1 {
-      color: #2c3e50;
-      margin-bottom: 1.5rem;
+      color: #eee;
+      margin-bottom: 2rem;
       font-size: 2.5rem;
+      font-weight: 300;
+      letter-spacing: 1px;
     }
 
     .button-grid {
@@ -41,9 +44,7 @@
       gap: 1.5rem;
       justify-content: center;
       max-width: 600px;
-      /* Adjust this value as needed */
       margin: 0 auto;
-      /* Centers the grid horizontally */
     }
 
     .button-wrapper {
@@ -55,59 +56,100 @@
     .button {
       font-size: 2.5rem;
       color: white;
-      background-color: #7a7a7a;
-      border: none;
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 50%;
       text-decoration: none;
       transition: all 0.3s ease;
-      width: 80px;
-      height: 80px;
+      width: 90px;
+      height: 90px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .button i {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: transform 0.3s ease;
     }
 
     .button:hover {
-      background-color: #5f5f5f;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background: linear-gradient(145deg, #0f3460, #16213e);
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      border-color: #667eea;
+    }
+
+    .button:hover i {
+      transform: scale(1.2) rotate(5deg);
     }
 
     .button.disabled {
-      background-color: #bdc3c7;
+      background: linear-gradient(145deg, #2a2a3e, #1f1f2e);
+      border-color: rgba(255, 255, 255, 0.05);
       cursor: not-allowed;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .button.disabled:hover {
       transform: none;
-      box-shadow: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .button.disabled i {
+      background: linear-gradient(135deg, #555, #666);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .button.disabled:hover i {
+      transform: none;
     }
 
     .button-text {
-      font-size: 0.8rem;
-      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      margin-top: 0.7rem;
       display: block;
-      color: #333;
+      color: #ccc;
+      font-weight: 400;
     }
 
     .warning {
       font-style: italic;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       margin-top: 0.5rem;
       display: none;
-      color: red;
+      color: #ff6b6b;
     }
 
     @media (max-width: 600px) {
+      .container {
+        padding: 2rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
       .button-grid {
         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       }
 
       .button {
         font-size: 2rem;
-        width: 60px;
-        height: 60px;
+        width: 70px;
+        height: 70px;
+      }
+
+      .button-text {
+        font-size: 0.75rem;
       }
     }
   </style>
@@ -118,39 +160,38 @@
     <h1>Welcome to Preston's Games and Tools</h1>
     <div class="button-grid">
       <div class="button-wrapper">
-        <a href="BDayCalc.html" class="button" style="color: palevioletred;;">
+        <a href="BDayCalc.html" class="button">
           <i class="fas fa-birthday-cake"></i>
         </a>
         <span class="button-text">Birthday Calculator</span>
       </div>
       <div class="button-wrapper">
-        <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="button" target="_blank"
-          style="color: skyblue;" rel="noopener">
+        <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="button" target="_blank" rel="noopener">
           <i class="fas fa-map-marked-alt"></i>
         </a>
         <span class="button-text">My Roadtrips</span>
       </div>
       <div class="button-wrapper">
         <a href="TheHouseOnline.html" class="button">
-          <i class="fas fa-home" style="color: orange;"></i>
+          <i class="fas fa-home"></i>
         </a>
         <span class="button-text">TheHouseOnline</span>
       </div>
       <div class="button-wrapper">
-        <a href="AItetris.html" class="button" id="tetrisButton" style="color: lightsalmon">
+        <a href="AItetris.html" class="button" id="tetrisButton">
           <i class="fas fa-cube"></i>
         </a>
         <span class="button-text">Tetris by ClaudeAI</span>
         <span class="warning" id="tetrisWarning">Not supported on mobile</span>
       </div>
       <div class="button-wrapper">
-        <a href="snake.html" class="button" style="color: lawngreen;">
+        <a href="snake.html" class="button">
           <i class="fas fa-staff-snake"></i>
         </a>
         <span class="button-text">Snake by ClaudeAI</span>
       </div>
       <div class="button-wrapper">
-        <a href="https://studio--marinaview.us-central1.hosted.app/" class="button" style="color: Navy;">
+        <a href="https://studio--marinaview.us-central1.hosted.app/" class="button">
           <i class="fa-solid fa-anchor"></i>
         </a>
         <span class="button-text">MarinaManager</span>
