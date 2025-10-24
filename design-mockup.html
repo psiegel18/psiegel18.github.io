@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design Mockup - Choose Your Style</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    .mockup-header {
+      text-align: center;
+      color: white;
+      margin-bottom: 3rem;
+    }
+
+    .mockup-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .mockup-header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .options-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .option-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
+    }
+
+    .option-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .option-header {
+      padding: 1.5rem;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .option-1 .option-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .option-2 .option-header {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    }
+
+    .option-3 .option-header {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .option-4 .option-header {
+      background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+    }
+
+    .preview-container {
+      padding: 2rem;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Option 1: Modern Gradient Theme */
+    .option-1 .preview-container {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .option-1 .preview-title {
+      color: white;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .option-1 .button-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .option-1 .btn-item {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: white;
+    }
+
+    .option-1 .btn-item:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-5px) scale(1.05);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .option-1 .btn-item i {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .option-1 .btn-text {
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* Option 2: Professional Dark Theme */
+    .option-2 .preview-container {
+      background: #1a1a2e;
+    }
+
+    .option-2 .preview-title {
+      color: #eee;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+
+    .option-2 .button-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .option-2 .btn-item {
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 12px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #eee;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .option-2 .btn-item:hover {
+      background: linear-gradient(145deg, #0f3460, #16213e);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      border-color: #667eea;
+    }
+
+    .option-2 .btn-item i {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .option-2 .btn-text {
+      font-size: 0.75rem;
+      font-weight: 400;
+    }
+
+    /* Option 3: Playful & Colorful */
+    .option-3 .preview-container {
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    }
+
+    .option-3 .preview-title {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      font-weight: 800;
+    }
+
+    .option-3 .button-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .option-3 .btn-item {
+      background: white;
+      border-radius: 20px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.2);
+      border: 3px solid transparent;
+    }
+
+    .option-3 .btn-item:hover {
+      transform: translateY(-5px) rotate(-2deg);
+      box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
+      border-color: #f5576c;
+    }
+
+    .option-3 .btn-item:nth-child(1) i {
+      color: #f093fb;
+    }
+
+    .option-3 .btn-item:nth-child(2) i {
+      color: #f5576c;
+    }
+
+    .option-3 .btn-item:nth-child(3) i {
+      color: #4facfe;
+    }
+
+    .option-3 .btn-item:nth-child(4) i {
+      color: #43e97b;
+    }
+
+    .option-3 .btn-item:nth-child(5) i {
+      color: #fa709a;
+    }
+
+    .option-3 .btn-item:nth-child(6) i {
+      color: #30cfd0;
+    }
+
+    .option-3 .btn-item i {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .option-3 .btn-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    /* Option 4: Minimalist Enhanced */
+    .option-4 .preview-container {
+      background: #f8f9fa;
+    }
+
+    .option-4 .preview-title {
+      color: #2c3e50;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      font-weight: 600;
+    }
+
+    .option-4 .button-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .option-4 .btn-item {
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      border: 2px solid #f0f0f0;
+    }
+
+    .option-4 .btn-item:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      border-color: #4b6cb7;
+    }
+
+    .option-4 .btn-item i {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+      color: #4b6cb7;
+      transition: transform 0.3s ease;
+    }
+
+    .option-4 .btn-item:hover i {
+      transform: scale(1.2) rotate(5deg);
+    }
+
+    .option-4 .btn-text {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+
+    /* Features List */
+    .features-list {
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-top: 1px solid #eee;
+    }
+
+    .features-list h3 {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .features-list ul {
+      list-style: none;
+      font-size: 0.85rem;
+      color: #555;
+    }
+
+    .features-list li {
+      padding: 0.4rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .features-list li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #4caf50;
+      font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+      .options-container {
+        grid-template-columns: 1fr;
+      }
+
+      .mockup-header h1 {
+        font-size: 1.8rem;
+      }
+
+      .button-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="mockup-header">
+    <h1>Choose Your Design Style</h1>
+    <p>Preview different design options for your website - scroll through and see which one fits your style!</p>
+  </div>
+
+  <div class="options-container">
+    <!-- Option 1: Modern Gradient Theme -->
+    <div class="option-card option-1">
+      <div class="option-header">
+        Option 1: Modern Gradient
+      </div>
+      <div class="preview-container">
+        <h1 class="preview-title">Preston's Games & Tools</h1>
+        <div class="button-grid">
+          <div class="btn-item">
+            <i class="fas fa-birthday-cake"></i>
+            <span class="btn-text">Birthday Calculator</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-map-marked-alt"></i>
+            <span class="btn-text">My Roadtrips</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-home"></i>
+            <span class="btn-text">TheHouseOnline</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-cube"></i>
+            <span class="btn-text">Tetris</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-staff-snake"></i>
+            <span class="btn-text">Snake</span>
+          </div>
+          <div class="btn-item">
+            <i class="fa-solid fa-anchor"></i>
+            <span class="btn-text">Marina Manager</span>
+          </div>
+        </div>
+      </div>
+      <div class="features-list">
+        <h3>Key Features</h3>
+        <ul>
+          <li>Vibrant gradient backgrounds</li>
+          <li>Glass-morphism effect on buttons</li>
+          <li>Smooth animations & hover effects</li>
+          <li>Modern, eye-catching design</li>
+          <li>Great for creative/tech portfolios</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Option 2: Professional Dark Theme -->
+    <div class="option-card option-2">
+      <div class="option-header">
+        Option 2: Professional Dark
+      </div>
+      <div class="preview-container">
+        <h1 class="preview-title">Preston's Games & Tools</h1>
+        <div class="button-grid">
+          <div class="btn-item">
+            <i class="fas fa-birthday-cake"></i>
+            <span class="btn-text">Birthday Calculator</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-map-marked-alt"></i>
+            <span class="btn-text">My Roadtrips</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-home"></i>
+            <span class="btn-text">TheHouseOnline</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-cube"></i>
+            <span class="btn-text">Tetris</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-staff-snake"></i>
+            <span class="btn-text">Snake</span>
+          </div>
+          <div class="btn-item">
+            <i class="fa-solid fa-anchor"></i>
+            <span class="btn-text">Marina Manager</span>
+          </div>
+        </div>
+      </div>
+      <div class="features-list">
+        <h3>Key Features</h3>
+        <ul>
+          <li>Sleek dark theme design</li>
+          <li>Professional gradient icons</li>
+          <li>Sophisticated color palette</li>
+          <li>Elegant hover animations</li>
+          <li>Perfect for professional portfolios</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Option 3: Playful & Colorful -->
+    <div class="option-card option-3">
+      <div class="option-header">
+        Option 3: Playful & Colorful
+      </div>
+      <div class="preview-container">
+        <h1 class="preview-title">Preston's Games & Tools</h1>
+        <div class="button-grid">
+          <div class="btn-item">
+            <i class="fas fa-birthday-cake"></i>
+            <span class="btn-text">Birthday Calculator</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-map-marked-alt"></i>
+            <span class="btn-text">My Roadtrips</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-home"></i>
+            <span class="btn-text">TheHouseOnline</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-cube"></i>
+            <span class="btn-text">Tetris</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-staff-snake"></i>
+            <span class="btn-text">Snake</span>
+          </div>
+          <div class="btn-item">
+            <i class="fa-solid fa-anchor"></i>
+            <span class="btn-text">Marina Manager</span>
+          </div>
+        </div>
+      </div>
+      <div class="features-list">
+        <h3>Key Features</h3>
+        <ul>
+          <li>Vibrant multi-color palette</li>
+          <li>Fun, playful animations</li>
+          <li>Each button has unique color</li>
+          <li>Energetic warm gradient background</li>
+          <li>Great for games & creative projects</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Option 4: Minimalist Enhanced -->
+    <div class="option-card option-4">
+      <div class="option-header">
+        Option 4: Minimalist Enhanced
+      </div>
+      <div class="preview-container">
+        <h1 class="preview-title">Preston's Games & Tools</h1>
+        <div class="button-grid">
+          <div class="btn-item">
+            <i class="fas fa-birthday-cake"></i>
+            <span class="btn-text">Birthday Calculator</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-map-marked-alt"></i>
+            <span class="btn-text">My Roadtrips</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-home"></i>
+            <span class="btn-text">TheHouseOnline</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-cube"></i>
+            <span class="btn-text">Tetris</span>
+          </div>
+          <div class="btn-item">
+            <i class="fas fa-staff-snake"></i>
+            <span class="btn-text">Snake</span>
+          </div>
+          <div class="btn-item">
+            <i class="fa-solid fa-anchor"></i>
+            <span class="btn-text">Marina Manager</span>
+          </div>
+        </div>
+      </div>
+      <div class="features-list">
+        <h3>Key Features</h3>
+        <ul>
+          <li>Clean, refined minimalist design</li>
+          <li>Enhanced version of current style</li>
+          <li>Subtle shadows & smooth transitions</li>
+          <li>Icon animations on hover</li>
+          <li>Professional yet approachable</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

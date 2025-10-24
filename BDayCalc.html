@@ -6,14 +6,267 @@
     <meta name="BDay Calculator Form" content="width=device-width, initial-scale=1.0">
     <title>Birthday Calculator Form</title>
     <link rel="icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .nav-brand {
+            font-size: 1.3rem;
+            font-weight: 300;
+            color: #eee;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-brand i {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-right: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #ccc;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+        }
+
+        .nav-link i {
+            font-size: 0.9rem;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            color: #eee;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            font-size: 2.2rem;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            color: #eee;
+            text-align: center;
+            margin: 2rem 0;
+            font-weight: 400;
+        }
+
+        /* Form Styling */
+        div > label {
+            color: #ccc;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+
+        input[type="number"],
+        select {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #eee;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin: 0.5rem 0;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        input[type="submit"] {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        input[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Tables */
+        table {
+            border-collapse: collapse;
+            margin: 1rem auto;
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.8rem;
+            font-weight: 500;
+        }
+
+        td {
+            padding: 0.6rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+        }
+
+        /* Separator */
+        hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 2rem 0;
+        }
+
+        /* Text Styling */
+        b {
+            color: #fff;
+        }
+
+        ins {
+            text-decoration: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+
+        #bdayCalculation {
+            text-align: left;
+            line-height: 1.8;
+        }
+
+        ol, ul {
+            color: #ccc;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem;
+            }
+
+            .nav-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nav-links {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .nav-link {
+                width: 100%;
+            }
+
+            .container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="button-container">
-        <a href="index.html" class="button">Homepage</a>
-    </div>
-    <hr>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <i class="fas fa-home"></i>
+                Preston's Hub
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                <a href="BDayCalc.html" class="nav-link active"><i class="fas fa-birthday-cake"></i> Birthday Calc</a>
+                <a href="https://travelmapping.net/user/?units=miles&u=psiegel18&" class="nav-link" target="_blank" rel="noopener"><i class="fas fa-map-marked-alt"></i> Roadtrips</a>
+                <a href="TheHouseOnline.html" class="nav-link"><i class="fas fa-house"></i> TheHouse</a>
+                <a href="AItetris.html" class="nav-link"><i class="fas fa-cube"></i> Tetris</a>
+                <a href="snake.html" class="nav-link"><i class="fas fa-staff-snake"></i> Snake</a>
+                <a href="https://prct.psiegel.org" class="nav-link" target="_blank" rel="noopener"><i class="fas fa-chart-bar"></i> PRCT</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
     <h1 id="bdayH1">Birthdate to Weekday Calculator</h1>
     <div>
         <label for="year">Year:</label>
@@ -252,6 +505,7 @@
         </table>
       </p>
       </div>
-      <script src="BDay2.0.js"></script>
+    </div>
+    <script src="BDay2.0.js"></script>
 </body>
 </html>
