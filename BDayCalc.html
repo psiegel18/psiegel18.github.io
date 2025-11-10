@@ -3,8 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="BDay Calculator Form" content="width=device-width, initial-scale=1.0">
-    <title>Birthday Calculator Form</title>
+    <meta name="description" content="Calculate what day of the week you were born on using the Doomsday algorithm">
+    <title>Birthday Calculator - Weekday Calculator</title>
+
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="Birthday Weekday Calculator">
+    <meta property="og:description" content="Find out what day of the week you were born!">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
     <link rel="icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -141,7 +152,9 @@
             box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
         }
 
-        input[type="submit"] {
+        input[type="submit"],
+        .quick-btn,
+        .copy-btn {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
@@ -153,9 +166,48 @@
             font-weight: 500;
         }
 
-        input[type="submit"]:hover {
+        input[type="submit"]:hover,
+        .quick-btn:hover,
+        .copy-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .quick-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .quick-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .copy-btn {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .copy-btn.visible {
+            display: inline-block;
+        }
+
+        .validation-error {
+            color: #ff6b6b;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .validation-error.visible {
+            display: block;
+        }
+
+        input.error {
+            border-color: #ff6b6b;
         }
 
         /* Tables */
@@ -270,7 +322,8 @@
     <h1 id="bdayH1">Birthdate to Weekday Calculator</h1>
     <div>
         <label for="year">Year:</label>
-        <input type="number" name="birthYear" id="birthYear" placeholder="Enter Birthyear">
+        <input type="number" name="birthYear" id="birthYear" placeholder="Enter Birthyear" min="1" max="9999">
+        <span class="validation-error" id="yearError">Please enter a valid year (1-9999)</span>
         <br>
         <label for="month">Month:</label>
         <select name="birthMonth" id="birthMonth">
@@ -289,12 +342,21 @@
         </select>
         <br>
         <label for="day">Date</label>
-        <input type="number" name="birthDay" id="birthDay" placeholder="Enter Birthdate">
+        <input type="number" name="birthDay" id="birthDay" placeholder="Enter Birthdate" min="1" max="31">
+        <span class="validation-error" id="dayError">Please enter a valid day (1-31)</span>
+      </div>
+      <div class="quick-buttons">
+          <button class="quick-btn" id="todayBtn">Today</button>
+          <button class="quick-btn" id="randomBtn">Random Date</button>
       </div>
       <br>
       <div>
           <input type="submit" name="submitButton" id="submitButton">
-      </div><hr>
+      </div>
+      <div style="text-align: center;">
+          <button class="copy-btn" id="copyResultBtn">📋 Copy Result</button>
+      </div>
+      <hr>
       <h2 id="bdayH2">You were born on a: <u>?</u></h2>
       <div id="bdayCalculation">
       <p> The following steps were taken in calculating the day of the week based on the date entered above
@@ -507,5 +569,83 @@
       </div>
     </div>
     <script src="BDay2.0.js"></script>
+    <script>
+        // Quick date buttons
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            const today = new Date();
+            document.getElementById('birthYear').value = today.getFullYear();
+            document.getElementById('birthMonth').value = today.toLocaleString('en-US', { month: 'long' });
+            document.getElementById('birthDay').value = today.getDate();
+        });
+
+        document.getElementById('randomBtn').addEventListener('click', () => {
+            const year = Math.floor(Math.random() * (2024 - 1950 + 1)) + 1950;
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const month = months[Math.floor(Math.random() * 12)];
+            const day = Math.floor(Math.random() * 28) + 1; // Safe day for all months
+
+            document.getElementById('birthYear').value = year;
+            document.getElementById('birthMonth').value = month;
+            document.getElementById('birthDay').value = day;
+        });
+
+        // Input validation
+        const yearInput = document.getElementById('birthYear');
+        const dayInput = document.getElementById('birthDay');
+        const yearError = document.getElementById('yearError');
+        const dayError = document.getElementById('dayError');
+
+        function validateYear() {
+            const year = parseInt(yearInput.value);
+            if (!year || year < 1 || year > 9999) {
+                yearInput.classList.add('error');
+                yearError.classList.add('visible');
+                return false;
+            }
+            yearInput.classList.remove('error');
+            yearError.classList.remove('visible');
+            return true;
+        }
+
+        function validateDay() {
+            const day = parseInt(dayInput.value);
+            if (!day || day < 1 || day > 31) {
+                dayInput.classList.add('error');
+                dayError.classList.add('visible');
+                return false;
+            }
+            dayInput.classList.remove('error');
+            dayError.classList.remove('visible');
+            return true;
+        }
+
+        yearInput.addEventListener('blur', validateYear);
+        dayInput.addEventListener('blur', validateDay);
+
+        // Copy result button
+        const copyBtn = document.getElementById('copyResultBtn');
+        const resultH2 = document.getElementById('bdayH2');
+
+        // Show copy button when result is calculated
+        const observer = new MutationObserver(() => {
+            if (resultH2.textContent.includes('You were born on a:') && !resultH2.textContent.includes('?')) {
+                copyBtn.classList.add('visible');
+            }
+        });
+        observer.observe(resultH2, { childList: true, subtree: true, characterData: true });
+
+        copyBtn.addEventListener('click', () => {
+            const resultText = resultH2.textContent;
+            navigator.clipboard.writeText(resultText).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy. Please try manually selecting the text.');
+            });
+        });
+    </script>
 </body>
 </html>
