@@ -3,9 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Play the classic Snake game! Eat apples, grow longer, and avoid hitting walls or yourself. Beat your high score!">
+    <title>Snake Game - Play Classic Snake Online</title>
+
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="Snake Game">
+    <meta property="og:description" content="Play the classic Snake game online!">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
     <link rel="icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <title>Snake Game</title>
     <style>
         body {
             display: flex;
@@ -86,12 +98,19 @@
         }
         .game-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
             width: 100%;
-            max-width: 800px;
+            max-width: 1200px;
             padding: 20px;
             box-sizing: border-box;
+            gap: 20px;
+        }
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         #gameCanvas {
             border: 2px solid #667eea;
@@ -105,6 +124,112 @@
             font-size: 1.2rem;
             color: #eee;
             font-weight: 300;
+        }
+        .side-panel {
+            padding: 1.5rem;
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            min-width: 220px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        .side-panel h2 {
+            margin-top: 0;
+            color: #fff;
+            font-weight: 300;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+        .side-panel ul {
+            padding-left: 20px;
+            line-height: 1.8;
+            color: #ccc;
+            margin: 0;
+        }
+        .side-panel li {
+            margin-bottom: 0.5rem;
+        }
+        #gameOverModal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .game-over-content {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            margin: 15% auto;
+            padding: 2rem;
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 15px;
+            width: 80%;
+            max-width: 400px;
+            color: #eee;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: slideIn 0.3s ease-out;
+        }
+        .game-over-content h2 {
+            color: #ff6b6b;
+            margin-top: 0;
+            font-size: 2rem;
+            text-shadow: 0 2px 10px rgba(255, 107, 107, 0.5);
+        }
+        .game-over-score {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin: 1rem 0;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(102, 126, 234, 0.5);
+        }
+        .game-over-message {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            color: #ffd93d;
+        }
+        .game-over-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        .game-over-btn {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        .btn-play-again {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .btn-play-again:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-home {
+            background: rgba(255, 255, 255, 0.1);
+            color: #eee;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-home:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
         #instructionsModal {
             display: none;
@@ -192,6 +317,17 @@
             .nav-link {
                 width: 100%;
             }
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .side-panel {
+                width: 90%;
+                order: 2;
+            }
+            .game-area {
+                order: 1;
+            }
         }
     </style>
 </head>
@@ -215,17 +351,38 @@
         </div>
     </nav>
     <div class="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="scoreboard">Score: 0 | High Score: 0</div>
-        
-        <div id="mobileControls">
-            <div id="controlRow">
-                <button id="upBtn">&#8593;</button>
+        <div class="game-area">
+            <canvas id="gameCanvas"></canvas>
+            <div id="scoreboard">Score: 0 | High Score: 0</div>
+
+            <div id="mobileControls">
+                <div id="controlRow">
+                    <button id="upBtn">&#8593;</button>
+                </div>
+                <div id="controlRow">
+                    <button id="leftBtn">&#8592;</button>
+                    <button id="downBtn">&#8595;</button>
+                    <button id="rightBtn">&#8594;</button>
+                </div>
             </div>
-            <div id="controlRow">
-                <button id="leftBtn">&#8592;</button>
-                <button id="downBtn">&#8595;</button>
-                <button id="rightBtn">&#8594;</button>
+        </div>
+
+        <div class="side-panel">
+            <h2>Controls</h2>
+            <ul id="controls-list">
+                <!-- Controls will be dynamically set based on device -->
+            </ul>
+        </div>
+    </div>
+
+    <div id="gameOverModal">
+        <div class="game-over-content">
+            <h2>Game Over!</h2>
+            <div class="game-over-score" id="finalScore">0</div>
+            <div class="game-over-message" id="gameOverMessage"></div>
+            <div class="game-over-buttons">
+                <button class="game-over-btn btn-play-again" id="playAgainBtn">Play Again</button>
+                <button class="game-over-btn btn-home" onclick="window.location.href='index.html'">Home</button>
             </div>
         </div>
     </div>
@@ -246,10 +403,15 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const modal = document.getElementById('instructionsModal');
+        const gameOverModal = document.getElementById('gameOverModal');
         const closeBtn = document.getElementsByClassName('close')[0];
         const scoreboardElement = document.getElementById('scoreboard');
         const mobileControls = document.getElementById('mobileControls');
         const instructionsList = document.getElementById('instructions');
+        const controlsList = document.getElementById('controls-list');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const finalScoreElement = document.getElementById('finalScore');
+        const gameOverMessageElement = document.getElementById('gameOverMessage');
 
         let snake, apple, direction, gameLoop;
         let score = 0;
@@ -263,6 +425,17 @@
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
 
+        function loadLocalHighScore() {
+            const saved = localStorage.getItem('snakeHighScore');
+            if (saved) {
+                highScore = parseInt(saved, 10);
+            }
+        }
+
+        function saveLocalHighScore() {
+            localStorage.setItem('snakeHighScore', highScore.toString());
+        }
+
         function setupGame() {
             isMobile = checkMobile();
             if (isMobile) {
@@ -272,6 +445,7 @@
             }
             resizeCanvas();
             setInstructions();
+            loadLocalHighScore();
         }
 
         function resizeCanvas() {
@@ -299,7 +473,19 @@
                 <li>The game ends when you crash into a wall or your own tail.</li>
                 <li>Tap anywhere on the screen to pause/resume the game.</li>
             `;
+
+            const desktopControls = `
+                <li><strong>Arrow Keys:</strong> Move snake</li>
+                <li><strong>P or Esc:</strong> Pause/Resume</li>
+            `;
+            const mobileControls = `
+                <li><strong>Arrow Buttons:</strong> Move snake</li>
+                <li><strong>Swipe:</strong> Change direction</li>
+                <li><strong>Tap Screen:</strong> Pause/Resume</li>
+            `;
+
             instructionsList.innerHTML = isMobile ? mobileInstructions : desktopInstructions;
+            controlsList.innerHTML = isMobile ? mobileControls : desktopControls;
         }
 
         modal.style.display = 'block';
@@ -325,11 +511,13 @@
 
         function game() {
             if (!isPaused) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 moveSnake();
+                if (checkCollision()) {
+                    return; // Exit immediately if collision detected
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 drawSnake();
                 drawApple();
-                checkCollision();
             }
         }
 
@@ -374,25 +562,47 @@
 
         function checkCollision() {
             const head = snake[0];
+            // Check wall collision
             if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
                 gameOver();
+                return true;
             }
+            // Check self collision
             for (let i = 1; i < snake.length; i++) {
                 if (head.x === snake[i].x && head.y === snake[i].y) {
                     gameOver();
+                    return true;
                 }
             }
+            return false;
         }
 
         function gameOver() {
             clearInterval(gameLoop);
+
+            let message = '';
             if (score > highScore) {
                 highScore = score;
-                updateScoreboard();
+                saveLocalHighScore();
+                message = '🎉 New Personal Best! 🎉';
+            } else if (score === highScore && score > 0) {
+                message = '⭐ Matched Your Best! ⭐';
+            } else {
+                message = `Best: ${highScore}`;
             }
-            alert(`Game Over! Your score: ${score}`);
-            startGame();
+
+            updateScoreboard();
+
+            // Show game over modal
+            finalScoreElement.textContent = score;
+            gameOverMessageElement.textContent = message;
+            gameOverModal.style.display = 'block';
         }
+
+        playAgainBtn.addEventListener('click', () => {
+            gameOverModal.style.display = 'none';
+            startGame();
+        });
 
         function updateScoreboard() {
             scoreboardElement.textContent = `Score: ${score} | High Score: ${highScore}`;

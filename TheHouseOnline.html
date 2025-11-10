@@ -3,7 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MyPortalForTheHouse</title>
+    <title>TheHouse Portal - Quick Links</title>
+    <meta name="description" content="Quick access portal for TheHouse management tools and services">
+
+    <!-- Social Media Meta Tags -->
+    <meta property="og:title" content="TheHouse Portal">
+    <meta property="og:description" content="House management quick links and resources">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
     <link rel="icon" href="favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -151,45 +163,20 @@
         transform: scale(1.2) rotate(5deg);
       }
 
-      .button1 {
-        font-size: 2.5rem;
-        background: linear-gradient(145deg, #16213e, #0f3460);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        width: 90px;
-        height: 90px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      }
-
-      .button1 i {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        transition: transform 0.3s ease;
-      }
-
-      .button1:hover {
-        background: linear-gradient(145deg, #0f3460, #16213e);
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        border-color: #667eea;
-      }
-
-      .button1:hover i {
-        transform: scale(1.2) rotate(5deg);
-      }
-
-      .button-text1, .button-text {
+      .button-text {
         font-size: 0.85rem;
         margin-top: 0.7rem;
         display: block;
         color: #ccc;
+        font-weight: 400;
+      }
+
+      .subtitle {
+        color: #aaa;
+        font-size: 1rem;
+        font-weight: 300;
+        margin-top: -1rem;
+        margin-bottom: 1.5rem;
       }
 
       @media (max-width: 768px) {
@@ -217,13 +204,16 @@
         .button-container {
           gap: 1.5rem;
         }
-        .button, .button1 {
+        .button {
           font-size: 2rem;
           width: 70px;
           height: 70px;
         }
         h1 {
           font-size: 1.6rem;
+        }
+        .subtitle {
+          font-size: 0.9rem;
         }
       }
     </style>
@@ -249,26 +239,28 @@
     </nav>
     <div class="container" id="Environments">
       <div class="content">
-        <h1>Which Environment do you want to view?</h1>
+        <h1>Environment Access</h1>
+        <p class="subtitle">Choose your deployment environment</p>
         <div class="button-container">
           <div>
-            <a href="https://testthehouse.psiegel.org" class="button1" title="Testing Environment" target="_blank" rel="noopener">
+            <a href="https://testthehouse.psiegel.org" class="button" title="Testing Environment" target="_blank" rel="noopener">
               <i class="fas fa-vial"></i>
             </a>
-            <span class="button-text1">Testing</span>
+            <span class="button-text">Testing</span>
           </div>
           <div>
-            <a href="https://thehouse.psiegel.org" class="button1" title="Production Environment" target="_blank" rel="noopener">
+            <a href="https://thehouse.psiegel.org" class="button" title="Production Environment" target="_blank" rel="noopener">
               <i class="fas fa-globe"></i>
             </a>
-            <span class="button-text1">Production</span>
+            <span class="button-text">Production</span>
           </div>
         </div>
       </div>
     </div>
     <div class="container" id="otherResources">
       <div class="content">
-        <h1>Other Resources</h1>
+        <h1>Development Tools</h1>
+        <p class="subtitle">Quick links to services and resources</p>
         <div class="button-container">
           <div>
             <a href="https://github.com/psiegel18/TheHouseOnline" class="button" title="GitHub" target="_blank" rel="noopener">
@@ -299,6 +291,12 @@
               <i class="fas fa-robot"></i>
             </a>
             <span class="button-text">Claude.AI</span>
+          </div>
+          <div>
+            <a href="https://dash.cloudflare.com/6331ec5e24e1696dd4849b23c16fab5a/workers-and-pages" class="button" title="Cloudflare" target="_blank" rel="noopener">
+              <i class="fab fa-cloudflare"></i>
+            </a>
+            <span class="button-text">Cloudflare</span>
           </div>
         </div>
       </div>
