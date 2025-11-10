@@ -1,0 +1,56 @@
+{
+  "snake": [
+    {
+      "name": "Preston",
+      "score": 25,
+      "date": "2025-01-10"
+    },
+    {
+      "name": "Player2",
+      "score": 20,
+      "date": "2025-01-09"
+    },
+    {
+      "name": "Player3",
+      "score": 15,
+      "date": "2025-01-08"
+    },
+    {
+      "name": "Player4",
+      "score": 10,
+      "date": "2025-01-07"
+    },
+    {
+      "name": "Player5",
+      "score": 5,
+      "date": "2025-01-06"
+    }
+  ],
+  "tetris": [
+    {
+      "name": "Preston",
+      "score": 1200,
+      "date": "2025-01-10"
+    },
+    {
+      "name": "Player2",
+      "score": 800,
+      "date": "2025-01-09"
+    },
+    {
+      "name": "Player3",
+      "score": 500,
+      "date": "2025-01-08"
+    },
+    {
+      "name": "Player4",
+      "score": 300,
+      "date": "2025-01-07"
+    },
+    {
+      "name": "Player5",
+      "score": 100,
+      "date": "2025-01-06"
+    }
+  ]
+}

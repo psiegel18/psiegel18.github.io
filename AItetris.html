@@ -141,6 +141,20 @@
         #top-scores-list li {
             margin-bottom: 0.3rem;
         }
+        #global-scores {
+            margin-top: 1.5rem;
+        }
+        #global-scores h3 {
+            margin-bottom: 0.5rem;
+        }
+        #global-scores-list {
+            margin-top: 0;
+            padding-left: 20px;
+            color: #ccc;
+        }
+        #global-scores-list li {
+            margin-bottom: 0.3rem;
+        }
 
         @media (max-width: 768px) {
             .navbar {
@@ -202,8 +216,14 @@
                 <li>Q: Quit game</li>
             </ul>
             <div id="top-scores">
-                <h3>Top 5 Scores</h3>
+                <h3>Local Top 5</h3>
                 <ol id="top-scores-list"></ol>
+            </div>
+            <div id="global-scores">
+                <h3>Global Top 5</h3>
+                <ol id="global-scores-list">
+                    <li>Loading...</li>
+                </ol>
             </div>
         </div>
         <canvas id="tetrisCanvas"></canvas>
@@ -214,6 +234,7 @@
             const ctx = canvas.getContext('2d');
             const scoreDisplay = document.getElementById('score-display');
             const topScoresList = document.getElementById('top-scores-list');
+            const globalScoresList = document.getElementById('global-scores-list');
 
             let BLOCK_SIZE, BOARD_WIDTH, BOARD_HEIGHT;
             let board;
@@ -239,6 +260,7 @@
             let isPaused = false;
             let isGameStarted = false;
             let score = 0;
+            let globalHighScores = [];
 
             function resizeGame() {
                 const gameContainer = document.querySelector('.game-container');
@@ -261,6 +283,7 @@
             function initGame() {
                 resizeGame();
                 updateTopScores();
+                loadGlobalHighScores();
                 drawStartScreen();
             }
 
@@ -279,7 +302,18 @@
                 isPaused = false;
                 clearInterval(gameInterval);
 
-                const username = prompt("Game Over! Your score: " + score + "\nEnter your name:");
+                let message = "Game Over! Your score: " + score;
+
+                // Check if score qualifies for global leaderboard
+                const lowestGlobalScore = globalHighScores.length > 0 ?
+                    globalHighScores[globalHighScores.length - 1].score : 0;
+                if (globalHighScores.length < 5 || score > lowestGlobalScore) {
+                    message += "\n🏆 You made the global leaderboard!";
+                    message += "\n(Contact the site admin to add your score)";
+                }
+
+                message += "\nEnter your name:";
+                const username = prompt(message);
                 if (username) {
                     saveScore(username, score);
                 }
@@ -307,10 +341,39 @@
             function updateTopScores() {
                 const scores = JSON.parse(localStorage.getItem('tetrisScores')) || [];
                 topScoresList.innerHTML = '';
+                if (scores.length === 0) {
+                    topScoresList.innerHTML = '<li>No local scores yet</li>';
+                    return;
+                }
                 scores.forEach((entry, index) => {
                     const li = document.createElement('li');
                     li.textContent = `${entry.name}: ${entry.score}`;
                     topScoresList.appendChild(li);
+                });
+            }
+
+            async function loadGlobalHighScores() {
+                try {
+                    const response = await fetch('highscores.json');
+                    const data = await response.json();
+                    globalHighScores = data.tetris || [];
+                    updateGlobalScoresDisplay();
+                } catch (error) {
+                    console.error('Error loading global high scores:', error);
+                    globalScoresList.innerHTML = '<li>Failed to load scores</li>';
+                }
+            }
+
+            function updateGlobalScoresDisplay() {
+                globalScoresList.innerHTML = '';
+                if (globalHighScores.length === 0) {
+                    globalScoresList.innerHTML = '<li>No scores yet</li>';
+                    return;
+                }
+                globalHighScores.forEach((entry) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${entry.name}: ${entry.score}`;
+                    globalScoresList.appendChild(li);
                 });
             }
 
