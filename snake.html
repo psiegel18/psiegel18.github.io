@@ -86,12 +86,19 @@
         }
         .game-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
             width: 100%;
-            max-width: 800px;
+            max-width: 1200px;
             padding: 20px;
             box-sizing: border-box;
+            gap: 20px;
+        }
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         #gameCanvas {
             border: 2px solid #667eea;
@@ -105,6 +112,30 @@
             font-size: 1.2rem;
             color: #eee;
             font-weight: 300;
+        }
+        .side-panel {
+            padding: 1.5rem;
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            min-width: 220px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        .side-panel h2 {
+            margin-top: 0;
+            color: #fff;
+            font-weight: 300;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+        .side-panel ul {
+            padding-left: 20px;
+            line-height: 1.8;
+            color: #ccc;
+            margin: 0;
+        }
+        .side-panel li {
+            margin-bottom: 0.5rem;
         }
         #instructionsModal {
             display: none;
@@ -192,6 +223,17 @@
             .nav-link {
                 width: 100%;
             }
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .side-panel {
+                width: 90%;
+                order: 2;
+            }
+            .game-area {
+                order: 1;
+            }
         }
     </style>
 </head>
@@ -215,18 +257,27 @@
         </div>
     </nav>
     <div class="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="scoreboard">Score: 0 | High Score: 0</div>
+        <div class="game-area">
+            <canvas id="gameCanvas"></canvas>
+            <div id="scoreboard">Score: 0 | High Score: 0</div>
 
-        <div id="mobileControls">
-            <div id="controlRow">
-                <button id="upBtn">&#8593;</button>
+            <div id="mobileControls">
+                <div id="controlRow">
+                    <button id="upBtn">&#8593;</button>
+                </div>
+                <div id="controlRow">
+                    <button id="leftBtn">&#8592;</button>
+                    <button id="downBtn">&#8595;</button>
+                    <button id="rightBtn">&#8594;</button>
+                </div>
             </div>
-            <div id="controlRow">
-                <button id="leftBtn">&#8592;</button>
-                <button id="downBtn">&#8595;</button>
-                <button id="rightBtn">&#8594;</button>
-            </div>
+        </div>
+
+        <div class="side-panel">
+            <h2>Controls</h2>
+            <ul id="controls-list">
+                <!-- Controls will be dynamically set based on device -->
+            </ul>
         </div>
     </div>
 
@@ -250,6 +301,7 @@
         const scoreboardElement = document.getElementById('scoreboard');
         const mobileControls = document.getElementById('mobileControls');
         const instructionsList = document.getElementById('instructions');
+        const controlsList = document.getElementById('controls-list');
 
         let snake, apple, direction, gameLoop;
         let score = 0;
@@ -311,7 +363,19 @@
                 <li>The game ends when you crash into a wall or your own tail.</li>
                 <li>Tap anywhere on the screen to pause/resume the game.</li>
             `;
+
+            const desktopControls = `
+                <li><strong>Arrow Keys:</strong> Move snake</li>
+                <li><strong>P or Esc:</strong> Pause/Resume</li>
+            `;
+            const mobileControls = `
+                <li><strong>Arrow Buttons:</strong> Move snake</li>
+                <li><strong>Swipe:</strong> Change direction</li>
+                <li><strong>Tap Screen:</strong> Pause/Resume</li>
+            `;
+
             instructionsList.innerHTML = isMobile ? mobileInstructions : desktopInstructions;
+            controlsList.innerHTML = isMobile ? mobileControls : desktopControls;
         }
 
         modal.style.display = 'block';
