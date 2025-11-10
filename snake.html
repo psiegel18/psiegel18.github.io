@@ -86,19 +86,12 @@
         }
         .game-container {
             display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: center;
-            width: 100%;
-            max-width: 1200px;
-            padding: 20px;
-            box-sizing: border-box;
-            gap: 20px;
-        }
-        .game-area {
-            display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-sizing: border-box;
         }
         #gameCanvas {
             border: 2px solid #667eea;
@@ -112,29 +105,6 @@
             font-size: 1.2rem;
             color: #eee;
             font-weight: 300;
-        }
-        .side-panel {
-            padding: 1.5rem;
-            background: linear-gradient(145deg, #16213e, #0f3460);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            min-width: 220px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-        .side-panel h2 {
-            margin-top: 0;
-            color: #fff;
-            font-weight: 300;
-            font-size: 1.3rem;
-        }
-        #global-scores-list {
-            margin-top: 0;
-            padding-left: 20px;
-            color: #ccc;
-            line-height: 1.8;
-        }
-        #global-scores-list li {
-            margin-bottom: 0.3rem;
         }
         #instructionsModal {
             display: none;
@@ -222,17 +192,6 @@
             .nav-link {
                 width: 100%;
             }
-            .game-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            .side-panel {
-                width: 90%;
-                order: 2;
-            }
-            .game-area {
-                order: 1;
-            }
         }
     </style>
 </head>
@@ -256,27 +215,18 @@
         </div>
     </nav>
     <div class="game-container">
-        <div class="game-area">
-            <canvas id="gameCanvas"></canvas>
-            <div id="scoreboard">Score: 0 | High Score: 0</div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="scoreboard">Score: 0 | High Score: 0</div>
 
-            <div id="mobileControls">
-                <div id="controlRow">
-                    <button id="upBtn">&#8593;</button>
-                </div>
-                <div id="controlRow">
-                    <button id="leftBtn">&#8592;</button>
-                    <button id="downBtn">&#8595;</button>
-                    <button id="rightBtn">&#8594;</button>
-                </div>
+        <div id="mobileControls">
+            <div id="controlRow">
+                <button id="upBtn">&#8593;</button>
             </div>
-        </div>
-
-        <div class="side-panel">
-            <h2>Global High Scores</h2>
-            <ol id="global-scores-list">
-                <li>Loading...</li>
-            </ol>
+            <div id="controlRow">
+                <button id="leftBtn">&#8592;</button>
+                <button id="downBtn">&#8595;</button>
+                <button id="rightBtn">&#8594;</button>
+            </div>
         </div>
     </div>
 
@@ -300,7 +250,6 @@
         const scoreboardElement = document.getElementById('scoreboard');
         const mobileControls = document.getElementById('mobileControls');
         const instructionsList = document.getElementById('instructions');
-        const globalScoresList = document.getElementById('global-scores-list');
 
         let snake, apple, direction, gameLoop;
         let score = 0;
@@ -309,35 +258,9 @@
         let isMobile = false;
         let cellSize = 10;
         let touchStartX, touchStartY;
-        let globalHighScores = [];
 
         function checkMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-
-        async function loadGlobalHighScores() {
-            try {
-                const response = await fetch('highscores.json');
-                const data = await response.json();
-                globalHighScores = data.snake || [];
-                updateGlobalScoresDisplay();
-            } catch (error) {
-                console.error('Error loading global high scores:', error);
-                globalScoresList.innerHTML = '<li>Failed to load scores</li>';
-            }
-        }
-
-        function updateGlobalScoresDisplay() {
-            globalScoresList.innerHTML = '';
-            if (globalHighScores.length === 0) {
-                globalScoresList.innerHTML = '<li>No scores yet</li>';
-                return;
-            }
-            globalHighScores.forEach((entry) => {
-                const li = document.createElement('li');
-                li.textContent = `${entry.name}: ${entry.score}`;
-                globalScoresList.appendChild(li);
-            });
         }
 
         function loadLocalHighScore() {
@@ -361,7 +284,6 @@
             resizeCanvas();
             setInstructions();
             loadLocalHighScore();
-            loadGlobalHighScores();
         }
 
         function resizeCanvas() {
@@ -484,44 +406,9 @@
                 message += '\n🎉 New personal best!';
             }
 
-            // Check if score qualifies for global leaderboard
-            const lowestGlobalScore = globalHighScores.length > 0 ?
-                globalHighScores[globalHighScores.length - 1].score : 0;
-            if (globalHighScores.length < 5 || score > lowestGlobalScore) {
-                updateScoreboard();
-                alert(message);
-
-                // Prompt for name and offer to submit score
-                const playerName = prompt('🏆 You made the global leaderboard!\n\nEnter your name to submit your score:');
-                if (playerName && playerName.trim()) {
-                    submitHighScore(playerName.trim(), score);
-                }
-            } else {
-                updateScoreboard();
-                alert(message);
-            }
-
+            updateScoreboard();
+            alert(message);
             startGame();
-        }
-
-        function submitHighScore(name, score) {
-            const today = new Date().toISOString().split('T')[0];
-            const scoreData = `Game: Snake\nPlayer: ${name}\nScore: ${score}\nDate: ${today}`;
-
-            // Copy to clipboard
-            navigator.clipboard.writeText(scoreData).then(() => {
-                const issueUrl = 'https://github.com/psiegel18/psiegel18.github.io/issues/new?title=New%20High%20Score:%20Snake%20-%20' +
-                    encodeURIComponent(name) + '&body=' + encodeURIComponent(scoreData);
-
-                if (confirm('Score copied to clipboard!\n\nClick OK to open GitHub and submit an issue, or Cancel to submit later.')) {
-                    window.open(issueUrl, '_blank');
-                } else {
-                    alert('Score saved to clipboard! You can submit it anytime by creating a GitHub issue or contacting the site admin.');
-                }
-            }).catch(() => {
-                // Fallback if clipboard API fails
-                alert(`Please submit your score:\n\n${scoreData}\n\nCreate an issue at: github.com/psiegel18/psiegel18.github.io/issues`);
-            });
         }
 
         function updateScoreboard() {
