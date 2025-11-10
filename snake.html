@@ -488,13 +488,40 @@
             const lowestGlobalScore = globalHighScores.length > 0 ?
                 globalHighScores[globalHighScores.length - 1].score : 0;
             if (globalHighScores.length < 5 || score > lowestGlobalScore) {
-                message += '\n🏆 You made the global leaderboard!';
-                message += '\n(Contact the site admin to add your score)';
+                updateScoreboard();
+                alert(message);
+
+                // Prompt for name and offer to submit score
+                const playerName = prompt('🏆 You made the global leaderboard!\n\nEnter your name to submit your score:');
+                if (playerName && playerName.trim()) {
+                    submitHighScore(playerName.trim(), score);
+                }
+            } else {
+                updateScoreboard();
+                alert(message);
             }
 
-            updateScoreboard();
-            alert(message);
             startGame();
+        }
+
+        function submitHighScore(name, score) {
+            const today = new Date().toISOString().split('T')[0];
+            const scoreData = `Game: Snake\nPlayer: ${name}\nScore: ${score}\nDate: ${today}`;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(scoreData).then(() => {
+                const issueUrl = 'https://github.com/psiegel18/psiegel18.github.io/issues/new?title=New%20High%20Score:%20Snake%20-%20' +
+                    encodeURIComponent(name) + '&body=' + encodeURIComponent(scoreData);
+
+                if (confirm('Score copied to clipboard!\n\nClick OK to open GitHub and submit an issue, or Cancel to submit later.')) {
+                    window.open(issueUrl, '_blank');
+                } else {
+                    alert('Score saved to clipboard! You can submit it anytime by creating a GitHub issue or contacting the site admin.');
+                }
+            }).catch(() => {
+                // Fallback if clipboard API fails
+                alert(`Please submit your score:\n\n${scoreData}\n\nCreate an issue at: github.com/psiegel18/psiegel18.github.io/issues`);
+            });
         }
 
         function updateScoreboard() {
