@@ -401,11 +401,13 @@
 
         function game() {
             if (!isPaused) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 moveSnake();
+                if (checkCollision()) {
+                    return; // Exit immediately if collision detected
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 drawSnake();
                 drawApple();
-                checkCollision();
             }
         }
 
@@ -450,14 +452,19 @@
 
         function checkCollision() {
             const head = snake[0];
+            // Check wall collision
             if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
                 gameOver();
+                return true;
             }
+            // Check self collision
             for (let i = 1; i < snake.length; i++) {
                 if (head.x === snake[i].x && head.y === snake[i].y) {
                     gameOver();
+                    return true;
                 }
             }
+            return false;
         }
 
         function gameOver() {
