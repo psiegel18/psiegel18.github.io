@@ -1,0 +1,12 @@
+name = "dayofweek-api"
+main = "dayofweek-api.js"
+compatibility_date = "2024-01-01"
+
+# Route configuration
+# Uncomment and configure based on your domain setup
+# routes = [
+#   { pattern = "www.psiegel.org/api/dayofweek/*", zone_name = "psiegel.org" }
+# ]
+
+# Or use workers.dev subdomain for testing
+# workers_dev = true

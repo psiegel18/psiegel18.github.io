@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day of Week API - Example Usage</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+        }
+
+        .container {
+            background: linear-gradient(145deg, #16213e, #0f3460);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        input {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #eee;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        pre {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            color: #c9d1d9;
+        }
+
+        .endpoint {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Day of Week API - Demo</h1>
+
+        <h2>Try the API</h2>
+        <p>Enter a date to see what day of the week it falls on:</p>
+
+        <input type="date" id="dateInput" value="2025-01-15">
+        <br>
+        <button onclick="fetchDayOfWeek()">Get Day of Week</button>
+
+        <div id="result"></div>
+
+        <h2>API Endpoints</h2>
+        <div class="endpoint">
+            <strong>Method 1:</strong> /api/dayofweek/YYYY-MM-DD
+        </div>
+        <div class="endpoint">
+            <strong>Method 2:</strong> /api/dayofweek?date=YYYY-MM-DD
+        </div>
+        <div class="endpoint">
+            <strong>Method 3:</strong> /api/dayofweek?year=YYYY&month=MM&day=DD
+        </div>
+    </div>
+
+    <script>
+        async function fetchDayOfWeek() {
+            const dateInput = document.getElementById('dateInput').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!dateInput) {
+                resultDiv.innerHTML = '<p style="color: #ff6b6b;">Please enter a date</p>';
+                return;
+            }
+
+            // Replace with your actual API URL once deployed
+            const apiUrl = `https://www.psiegel.org/api/dayofweek/${dateInput}`;
+
+            // For local testing, use:
+            // const apiUrl = `http://localhost:8787/api/dayofweek/${dateInput}`;
+
+            resultDiv.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>Result</h3>
+                        <p style="font-size: 24px; color: #667eea;">
+                            <strong>${data.date}</strong> falls on a <strong>${data.dayOfWeek}</strong>
+                        </p>
+
+                        <h4>Full Response:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+
+                        <h4>API URL Used:</h4>
+                        <div class="endpoint">${apiUrl}</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>Error</h3>
+                        <pre style="color: #ff6b6b;">${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Error</h3>
+                    <p style="color: #ff6b6b;">Failed to fetch from API. Make sure the worker is deployed.</p>
+                    <p style="color: #ccc; font-size: 14px;">Error: ${error.message}</p>
+                    <p style="color: #ccc; font-size: 14px;">Attempted URL: ${apiUrl}</p>
+                `;
+            }
+        }
+
+        // Load with default date on page load
+        window.addEventListener('load', () => {
+            fetchDayOfWeek();
+        });
+    </script>
+</body>
+</html>

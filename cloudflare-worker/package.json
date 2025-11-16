@@ -1,0 +1,21 @@
+{
+  "name": "dayofweek-api",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker API for calculating day of the week using the Doomsday algorithm",
+  "main": "dayofweek-api.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "wrangler dev"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "api",
+    "doomsday",
+    "day-of-week",
+    "calendar"
+  ],
+  "author": "Preston Siegel",
+  "license": "MIT"
+}
