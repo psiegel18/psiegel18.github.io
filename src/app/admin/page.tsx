@@ -105,12 +105,11 @@ type VercelData = {
   configured: boolean
   message?: string
   error?: string
-  user?: {
-    email: string
+  accounts?: Array<{
     name: string
     username: string
-  }
-  teamId?: string | null
+    email: string
+  }>
   summary?: {
     totalProjects: number
     totalDomains: number
@@ -124,6 +123,7 @@ type VercelData = {
     framework: string | null
     updatedAt: number
     createdAt: number
+    account: string
   }>
   deployments?: Array<{
     id: string
@@ -138,18 +138,89 @@ type VercelData = {
     commitMessage?: string
     commitRef?: string
     commitSha?: string
+    account: string
   }>
   domains?: Array<{
     name: string
     apexName: string
     verified: boolean
     createdAt: number
+    account: string
   }>
   stats?: {
     successful: number
     failed: number
     building: number
   }
+}
+
+type NeonData = {
+  configured: boolean
+  message?: string
+  error?: string
+  user?: {
+    name: string
+    email: string
+  }
+  summary?: {
+    totalProjects: number
+    totalBranches: number
+    totalDatabases: number
+    totalEndpoints: number
+    activeEndpoints: number
+    totalStorageBytes: number
+  }
+  currentProject?: {
+    id: string
+    name: string
+    region: string
+    pgVersion: number
+    activeTimeSeconds: number
+    cpuUsedSeconds: number
+    computeLastActiveAt: string
+  } | null
+  projects?: Array<{
+    id: string
+    name: string
+    region: string
+    pgVersion: number
+    createdAt: string
+    updatedAt: string
+    activeTimeSeconds: number
+    cpuUsedSeconds: number
+    computeLastActiveAt: string
+  }>
+  branches?: Array<{
+    id: string
+    name: string
+    primary: boolean
+    createdAt: string
+    currentState: string
+    logicalSize: number
+  }>
+  databases?: Array<{
+    id: number
+    name: string
+    ownerName: string
+    branchId: string
+  }>
+  endpoints?: Array<{
+    id: string
+    branchId: string
+    host: string
+    type: string
+    currentState: string
+    poolerEnabled: boolean
+    createdAt: string
+    lastActiveAt?: string
+  }>
+  operations?: Array<{
+    id: string
+    action: string
+    status: string
+    createdAt: string
+    updatedAt: string
+  }>
 }
 
 export default function AdminPage() {
@@ -162,6 +233,8 @@ export default function AdminPage() {
   const [cloudflareLoading, setCloudflareLoading] = useState(true)
   const [vercel, setVercel] = useState<VercelData | null>(null)
   const [vercelLoading, setVercelLoading] = useState(true)
+  const [neon, setNeon] = useState<NeonData | null>(null)
+  const [neonLoading, setNeonLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -176,6 +249,7 @@ export default function AdminPage() {
     fetchAnalytics()
     fetchCloudflare()
     fetchVercel()
+    fetchNeon()
   }, [session, status, router])
 
   const fetchStats = async () => {
@@ -230,6 +304,20 @@ export default function AdminPage() {
       setVercel({ configured: false, error: 'Failed to fetch Vercel data' })
     } finally {
       setVercelLoading(false)
+    }
+  }
+
+  const fetchNeon = async () => {
+    setNeonLoading(true)
+    try {
+      const response = await fetch('/api/admin/neon')
+      const data = await response.json()
+      setNeon(data)
+    } catch (error) {
+      console.error('Failed to fetch Neon data:', error)
+      setNeon({ configured: false, error: 'Failed to fetch Neon data' })
+    } finally {
+      setNeonLoading(false)
     }
   }
 
@@ -295,6 +383,29 @@ export default function AdminPage() {
       case 'QUEUED': return 'text-blue-400'
       default: return 'text-gray-400'
     }
+  }
+
+  const getAccountBadgeColor = (account: string) => {
+    switch (account) {
+      case 'Web': return 'bg-blue-500/20 text-blue-400'
+      case 'TheHouse': return 'bg-purple-500/20 text-purple-400'
+      default: return 'bg-gray-500/20 text-gray-400'
+    }
+  }
+
+  const getEndpointStatusColor = (state: string) => {
+    switch (state) {
+      case 'active': return 'bg-green-400'
+      case 'idle': return 'bg-yellow-400'
+      case 'init': return 'bg-blue-400 animate-pulse'
+      default: return 'bg-gray-400'
+    }
+  }
+
+  const formatComputeTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+    return `${(seconds / 3600).toFixed(1)}h`
   }
 
   if (status === 'loading' || loading) {
@@ -945,6 +1056,11 @@ export default function AdminPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium truncate">{deployment.name}</span>
+                              {deployment.account && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${getAccountBadgeColor(deployment.account)}`}>
+                                  {deployment.account}
+                                </span>
+                              )}
                               {deployment.commitSha && (
                                 <code className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
                                   {deployment.commitSha}
@@ -980,6 +1096,11 @@ export default function AdminPage() {
                       <div key={project.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{project.name}</span>
+                          {project.account && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getAccountBadgeColor(project.account)}`}>
+                              {project.account}
+                            </span>
+                          )}
                           {project.framework && (
                             <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
                               {project.framework}
@@ -1003,6 +1124,11 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${domain.verified ? 'bg-green-400' : 'bg-yellow-400'}`} />
                           <span className="text-sm">{domain.name}</span>
+                          {domain.account && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getAccountBadgeColor(domain.account)}`}>
+                              {domain.account}
+                            </span>
+                          )}
                         </div>
                         <span className="text-xs text-gray-500">
                           {domain.verified ? 'Verified' : 'Pending'}
@@ -1052,18 +1178,20 @@ export default function AdminPage() {
           {/* Links */}
           <div className="border-t border-dark-100/50 pt-4 mt-4">
             <div className="flex flex-wrap items-center gap-4 mb-4">
-              {vercel?.user?.username && (
-                <div>
-                  <span className="text-gray-400 text-sm">Account: </span>
-                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
-                    @{vercel.user.username}
-                  </code>
+              {vercel?.accounts && vercel.accounts.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">Accounts: </span>
+                  {vercel.accounts.map((account) => (
+                    <code key={account.name} className={`px-2 py-1 rounded text-sm ${getAccountBadgeColor(account.name)}`}>
+                      @{account.username}
+                    </code>
+                  ))}
                 </div>
               )}
               {vercel?.configured && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
                   <i className="fas fa-check-circle mr-1" />
-                  Connected
+                  {vercel.accounts?.length || 0} Connected
                 </span>
               )}
             </div>
@@ -1094,6 +1222,239 @@ export default function AdminPage() {
               >
                 <i className="fas fa-globe mr-2" />
                 Domains
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Neon Postgres */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              <i className="fas fa-database text-green-400 mr-2" />
+              Neon Postgres
+            </h2>
+            <button
+              onClick={fetchNeon}
+              className="btn-secondary text-sm"
+              disabled={neonLoading}
+            >
+              <i className={`fas fa-sync-alt mr-2 ${neonLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {neonLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-400" />
+            </div>
+          ) : !neon?.configured ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-yellow-400">
+                <i className="fas fa-exclamation-triangle mr-2" />
+                {neon?.message || neon?.error || 'Neon API not configured'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                To enable Neon integration, add the following environment variables:
+              </p>
+              <ul className="text-gray-400 text-sm mt-2 space-y-1">
+                <li><code className="bg-dark-400 px-1 rounded">NEON_API_KEY</code> - Your API key from Neon console</li>
+                <li><code className="bg-dark-400 px-1 rounded">NEON_PROJECT_ID</code> - (Optional) Specific project to monitor</li>
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Projects</p>
+                  <p className="text-3xl font-bold text-green-400">
+                    {neon.summary?.totalProjects || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Branches</p>
+                  <p className="text-3xl font-bold text-blue-400">
+                    {neon.summary?.totalBranches || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Databases</p>
+                  <p className="text-3xl font-bold text-purple-400">
+                    {neon.summary?.totalDatabases || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Storage</p>
+                  <p className="text-3xl font-bold text-orange-400">
+                    {formatBytes(neon.summary?.totalStorageBytes || 0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Current Project Info */}
+              {neon.currentProject && (
+                <div className="bg-dark-400/50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-400">Current Project</h3>
+                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                      PostgreSQL {neon.currentProject.pgVersion}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="text-sm font-medium">{neon.currentProject.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Region</p>
+                      <p className="text-sm font-medium">{neon.currentProject.region}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Compute Time</p>
+                      <p className="text-sm font-medium">{formatComputeTime(neon.currentProject.activeTimeSeconds || 0)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Last Active</p>
+                      <p className="text-sm font-medium">
+                        {neon.currentProject.computeLastActiveAt
+                          ? formatRelativeTime(new Date(neon.currentProject.computeLastActiveAt).getTime())
+                          : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Branches & Endpoints */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Branches */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Branches</h3>
+                  <div className="space-y-2">
+                    {neon.branches?.slice(0, 5).map((branch) => (
+                      <div key={branch.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${branch.currentState === 'ready' ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                          <span className="text-sm font-medium">{branch.name}</span>
+                          {branch.primary && (
+                            <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">primary</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {formatBytes(branch.logicalSize || 0)}
+                        </span>
+                      </div>
+                    ))}
+                    {(!neon.branches || neon.branches.length === 0) && (
+                      <p className="text-gray-500 text-sm">No branches found</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Endpoints */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Compute Endpoints</h3>
+                  <div className="space-y-2">
+                    {neon.endpoints?.slice(0, 5).map((endpoint) => (
+                      <div key={endpoint.id} className="bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${getEndpointStatusColor(endpoint.currentState)}`} />
+                            <span className="text-sm font-mono truncate max-w-[180px]">{endpoint.host.split('.')[0]}</span>
+                          </div>
+                          <span className="text-xs text-gray-500 capitalize">{endpoint.currentState}</span>
+                        </div>
+                        {endpoint.poolerEnabled && (
+                          <div className="text-xs text-gray-500 mt-1">Pooler enabled</div>
+                        )}
+                      </div>
+                    ))}
+                    {(!neon.endpoints || neon.endpoints.length === 0) && (
+                      <p className="text-gray-500 text-sm">No endpoints found</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Operations */}
+              {neon.operations && neon.operations.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Operations</h3>
+                  <div className="space-y-2">
+                    {neon.operations.slice(0, 5).map((op) => (
+                      <div key={op.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${
+                            op.status === 'finished' ? 'bg-green-400' :
+                            op.status === 'running' ? 'bg-yellow-400 animate-pulse' :
+                            op.status === 'error' ? 'bg-red-400' : 'bg-gray-400'
+                          }`} />
+                          <span className="text-sm">{op.action.replace(/_/g, ' ')}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xs capitalize ${
+                            op.status === 'finished' ? 'text-green-400' :
+                            op.status === 'running' ? 'text-yellow-400' :
+                            op.status === 'error' ? 'text-red-400' : 'text-gray-400'
+                          }`}>{op.status}</span>
+                          <span className="text-xs text-gray-500">
+                            {formatRelativeTime(new Date(op.createdAt).getTime())}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Links */}
+          <div className="border-t border-dark-100/50 pt-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {neon?.user?.email && (
+                <div>
+                  <span className="text-gray-400 text-sm">Account: </span>
+                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
+                    {neon.user.email}
+                  </code>
+                </div>
+              )}
+              {neon?.configured && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                  <i className="fas fa-check-circle mr-1" />
+                  Connected
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://console.neon.tech"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-external-link-alt mr-2" />
+                Neon Console
+              </a>
+              <a
+                href="https://console.neon.tech/app/projects"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-folder mr-2" />
+                Projects
+              </a>
+              <a
+                href="https://neon.tech/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-book mr-2" />
+                Documentation
               </a>
             </div>
           </div>
