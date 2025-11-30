@@ -318,12 +318,12 @@ export async function GET() {
     }> = []
 
     for (const result of projectResults) {
-      if (result.configured && 'project' in result) {
+      if (result.configured && 'project' in result && result.project) {
         configuredProjects.push(result.project)
-        allBranches.push(...result.branches)
-        allDatabases.push(...result.databases)
-        allEndpoints.push(...result.endpoints)
-        allOperations.push(...result.operations)
+        allBranches.push(...(result.branches || []))
+        allDatabases.push(...(result.databases || []))
+        allEndpoints.push(...(result.endpoints || []))
+        allOperations.push(...(result.operations || []))
       }
     }
 
