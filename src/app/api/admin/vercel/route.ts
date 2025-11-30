@@ -241,9 +241,9 @@ export async function GET() {
 
     for (const result of accountResults) {
       if (result.configured && 'projects' in result) {
-        allProjects.push(...result.projects)
-        allDeployments.push(...result.deployments)
-        allDomains.push(...result.domains)
+        allProjects.push(...(result.projects || []))
+        allDeployments.push(...(result.deployments || []))
+        allDomains.push(...(result.domains || []))
         if (result.user) {
           configuredAccounts.push({
             name: result.name,
