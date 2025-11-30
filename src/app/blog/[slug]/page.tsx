@@ -153,12 +153,13 @@ export default function BlogPostPage() {
 
         {/* Cover image */}
         {post.coverImage && (
-          <div className="relative w-full h-64 md:h-96 rounded-xl overflow-hidden mb-8">
+          <div className="mb-8">
             <Image
               src={post.coverImage}
               alt={post.title}
-              fill
-              className="object-cover"
+              width={800}
+              height={600}
+              className="rounded-xl w-full h-auto"
               priority
             />
           </div>

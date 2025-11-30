@@ -1,7 +1,20 @@
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
+import { useSession } from 'next-auth/react'
 
-const features = [
+type Feature = {
+  title: string
+  description: string
+  icon: string
+  href: string
+  color: string
+  external?: boolean
+  adminOnly?: boolean
+}
+
+const features: Feature[] = [
   {
     title: 'Snake',
     description: 'Classic snake game with global leaderboards',
@@ -51,10 +64,17 @@ const features = [
     href: 'https://prct.psiegel.org',
     external: true,
     color: 'from-red-500 to-pink-600',
+    adminOnly: true,
   },
 ]
 
 export default function Home() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'ADMIN'
+
+  const visibleFeatures = features.filter(
+    (feature) => !feature.adminOnly || isAdmin
+  )
   return (
     <div className="min-h-screen">
         {/* Hero Section */}
@@ -97,7 +117,7 @@ export default function Home() {
               Explore
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {features.map((feature) => (
+              {visibleFeatures.map((feature) => (
                 <Link
                   key={feature.title}
                   href={feature.href}
@@ -145,12 +165,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t border-dark-100/50">
-          <div className="max-w-7xl mx-auto text-center text-gray-500">
-            <p>&copy; {new Date().getFullYear()} Psiegel.org. All rights reserved.</p>
-          </div>
-        </footer>
       </div>
   )
 }
