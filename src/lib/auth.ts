@@ -72,10 +72,26 @@ export const authOptions: NextAuthOptions = {
       return true
     },
     async jwt({ token, user, trigger, session }: { token: any; user?: any; trigger?: string; session?: any }) {
+      // On initial sign-in, user object is available
       if (user) {
         token.id = user.id
         token.role = user.role || 'USER'
         token.isGuest = user.isGuest || false
+      }
+
+      // Always fetch the latest role from database for non-guest users
+      if (token.id && !token.isGuest && token.email) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email as string },
+            select: { role: true }
+          })
+          if (dbUser) {
+            token.role = dbUser.role
+          }
+        } catch (error) {
+          console.error('Failed to fetch user role:', error)
+        }
       }
 
       // Handle session update (e.g., guest upgrading to full account)
