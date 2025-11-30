@@ -39,24 +39,9 @@ export async function GET() {
   try {
     // Check admin access
     const session = await getServerSession(authOptions)
-
-    // Debug logging for session
-    console.log('Cloudflare API: Session check', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userRole: session?.user?.role,
-      userEmail: session?.user?.email?.slice(0, 3) + '...',
-    })
-
     if (!session?.user || session.user.role !== 'ADMIN') {
-      console.log('Cloudflare API: Unauthorized - session check failed')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    // Check if credentials are configured
-    const hasToken = !!process.env.CLOUDFLARE_API_TOKEN
-    const tokenPreview = process.env.CLOUDFLARE_API_TOKEN?.slice(0, 4) + '...'
-    console.log('Cloudflare API: Token check', { hasToken, tokenPreview })
 
     if (!process.env.CLOUDFLARE_API_TOKEN) {
       return NextResponse.json({
@@ -68,23 +53,7 @@ export async function GET() {
     const apiToken = process.env.CLOUDFLARE_API_TOKEN
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
 
-    // Verify token by getting user info
-    const userResponse = await cfFetch<{ id: string; email: string }>('/user', apiToken)
-    console.log('Cloudflare API: User response', {
-      success: userResponse.success,
-      hasResult: !!userResponse.result,
-      errors: userResponse.errors,
-    })
-    if (!userResponse.success) {
-      console.log('Cloudflare API: Token validation failed', userResponse.errors)
-      return NextResponse.json({
-        configured: false,
-        error: 'Invalid Cloudflare API token',
-        details: userResponse.errors.map(e => e.message).join(', '),
-      }, { status: 401 })
-    }
-
-    // Fetch zones (domains)
+    // Fetch zones (domains) - this also verifies the token is valid
     const zonesResponse = await cfFetch<Array<{
       id: string
       name: string
@@ -97,7 +66,15 @@ export async function GET() {
       modified_on: string
     }>>('/zones', apiToken)
 
-    const zones = zonesResponse.success ? zonesResponse.result.map(zone => ({
+    if (!zonesResponse.success) {
+      return NextResponse.json({
+        configured: false,
+        error: 'Invalid Cloudflare API token',
+        details: zonesResponse.errors.map(e => e.message).join(', '),
+      }, { status: 401 })
+    }
+
+    const zones = zonesResponse.result.map(zone => ({
       id: zone.id,
       name: zone.name,
       status: zone.status,
@@ -107,7 +84,7 @@ export async function GET() {
       nameServers: zone.name_servers,
       createdOn: zone.created_on,
       modifiedOn: zone.modified_on,
-    })) : []
+    }))
 
     // Fetch analytics for each zone (last 24 hours)
     const zoneAnalytics: Record<string, {
@@ -141,19 +118,73 @@ export async function GET() {
       }
     }
 
-    // Fetch R2 buckets (if account ID is provided)
-    let r2Buckets: Array<{ name: string; creationDate: string }> = []
+    // Fetch R2 buckets with usage details (if account ID is provided)
+    let r2Buckets: Array<{
+      name: string
+      creationDate: string
+      location: string
+      storageClass: string
+      objectCount?: number
+      storageUsed?: number
+    }> = []
+    let r2Summary = {
+      totalBuckets: 0,
+      totalObjects: 0,
+      totalStorageUsed: 0,
+    }
+
     if (accountId) {
       try {
         const r2Response = await cfFetch<{
-          buckets: Array<{ name: string; creation_date: string }>
+          buckets: Array<{
+            name: string
+            creation_date: string
+            location?: string
+            storage_class?: string
+          }>
         }>(`/accounts/${accountId}/r2/buckets`, apiToken)
 
         if (r2Response.success && r2Response.result?.buckets) {
-          r2Buckets = r2Response.result.buckets.map(bucket => ({
-            name: bucket.name,
-            creationDate: bucket.creation_date,
-          }))
+          // Fetch usage details for each bucket (limit to 10 to avoid rate limits)
+          const bucketDetails = await Promise.all(
+            r2Response.result.buckets.slice(0, 10).map(async (bucket) => {
+              let objectCount: number | undefined
+              let storageUsed: number | undefined
+
+              try {
+                // Fetch bucket usage/metrics
+                const usageResponse = await cfFetch<{
+                  objectCount?: number
+                  payloadSize?: number
+                  metadataSize?: number
+                  uploadCount?: number
+                }>(`/accounts/${accountId}/r2/buckets/${bucket.name}/usage`, apiToken)
+
+                if (usageResponse.success && usageResponse.result) {
+                  objectCount = usageResponse.result.objectCount
+                  storageUsed = (usageResponse.result.payloadSize || 0) + (usageResponse.result.metadataSize || 0)
+                }
+              } catch {
+                // Usage endpoint may not be available
+              }
+
+              return {
+                name: bucket.name,
+                creationDate: bucket.creation_date,
+                location: bucket.location || 'auto',
+                storageClass: bucket.storage_class || 'Standard',
+                objectCount,
+                storageUsed,
+              }
+            })
+          )
+
+          r2Buckets = bucketDetails
+          r2Summary = {
+            totalBuckets: r2Response.result.buckets.length,
+            totalObjects: bucketDetails.reduce((sum, b) => sum + (b.objectCount || 0), 0),
+            totalStorageUsed: bucketDetails.reduce((sum, b) => sum + (b.storageUsed || 0), 0),
+          }
         }
       } catch {
         // R2 may not be enabled
@@ -244,14 +275,15 @@ export async function GET() {
     return NextResponse.json({
       configured: true,
       accountId: accountId || null,
-      user: {
-        email: userResponse.result.email,
-      },
       summary: {
         totalZones: zones.length,
         totalWorkers: workers.length,
         totalPages: pages.length,
-        totalR2Buckets: r2Buckets.length,
+        totalR2Buckets: r2Summary.totalBuckets,
+        r2Storage: {
+          totalObjects: r2Summary.totalObjects,
+          totalStorageUsed: r2Summary.totalStorageUsed,
+        },
         last24h: {
           requests: totalRequests,
           bandwidth: totalBandwidth,
