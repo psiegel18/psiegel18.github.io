@@ -114,7 +114,9 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    const publicUrl = `${R2_PUBLIC_URL}/${filename}`
+    // Ensure URL has protocol prefix
+    const baseUrl = R2_PUBLIC_URL.startsWith('http') ? R2_PUBLIC_URL : `https://${R2_PUBLIC_URL}`
+    const publicUrl = `${baseUrl}/${filename}`
 
     return NextResponse.json({
       success: true,

@@ -56,6 +56,9 @@ export async function GET() {
       MaxKeys: 100,
     }))
 
+    // Ensure URL has protocol prefix
+    const baseUrl = R2_PUBLIC_URL.startsWith('http') ? R2_PUBLIC_URL : `https://${R2_PUBLIC_URL}`
+
     const images = (response.Contents || [])
       .filter(obj => {
         const key = obj.Key || ''
@@ -66,7 +69,7 @@ export async function GET() {
         const key = obj.Key || ''
         return {
           key,
-          url: `${R2_PUBLIC_URL}/${key}`,
+          url: `${baseUrl}/${key}`,
           size: obj.Size,
           lastModified: obj.LastModified?.toISOString(),
           name: key.split('/').pop() || key,

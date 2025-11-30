@@ -146,15 +146,43 @@ export async function GET() {
       projects = projects.filter(p => p.slug === projectFilter || p.name === projectFilter)
     }
 
+    // Handle case where there are no projects
+    if (projects.length === 0) {
+      return NextResponse.json({
+        configured: true,
+        organization: org,
+        projects: [],
+        summary: {
+          totalProjects: 0,
+          unresolvedIssues: 0,
+          criticalIssues: 0,
+          unhandledErrors: 0,
+          totalEvents: 0,
+          uniqueUsers: 0,
+          errors24h: 0,
+          transactions24h: 0,
+        },
+        errorTrend: { intervals: [], values: [] },
+        issues: [],
+        message: 'No projects found in Sentry. Create a project to start tracking errors.',
+      })
+    }
+
     const projectSlugs = projects.map(p => p.slug)
     const projectQuery = projectSlugs.map(s => `project:${s}`).join(' OR ')
 
     // Get unresolved issues (last 24 hours activity)
-    const issues = await sentryFetch<SentryIssue[]>(
-      `/issues/?query=is:unresolved ${projectQuery}&statsPeriod=24h&limit=20`,
-      token,
-      org
-    )
+    let issues: SentryIssue[] = []
+    try {
+      issues = await sentryFetch<SentryIssue[]>(
+        `/issues/?query=is:unresolved ${projectQuery}&statsPeriod=24h&limit=20`,
+        token,
+        org
+      )
+    } catch (error) {
+      console.error('Failed to fetch Sentry issues:', error)
+      // Continue with empty issues - don't fail the whole request
+    }
 
     const formattedIssues = issues.map(issue => ({
       id: issue.id,
@@ -259,9 +287,11 @@ export async function GET() {
     console.error('Sentry API error:', error)
     return NextResponse.json(
       {
-        configured: false,
+        configured: true, // Token is configured, but API call failed
         error: 'Failed to fetch Sentry data',
         details: error instanceof Error ? error.message : 'Unknown error',
+        // Include org slug for debugging (first 3 chars only)
+        orgPreview: process.env.SENTRY_ORG?.slice(0, 3) + '...',
       },
       { status: 500 }
     )

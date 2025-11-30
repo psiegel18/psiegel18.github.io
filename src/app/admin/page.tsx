@@ -458,19 +458,50 @@ export default function AdminPage() {
       return
     }
 
-    fetchStats()
-    fetchAnalytics()
-    fetchCloudflare()
-    fetchVercel()
-    fetchNeon()
-    fetchGithub()
-    fetchUptime()
-    fetchSentry()
+    // Stagger API requests to avoid race conditions in serverless environment
+    // When many functions try to verify the same session simultaneously, some may fail
+    const loadData = async () => {
+      // First batch - core data
+      fetchStats()
+      fetchAnalytics()
+
+      // Small delay before second batch
+      await new Promise(resolve => setTimeout(resolve, 100))
+      fetchCloudflare()
+      fetchVercel()
+
+      // Small delay before third batch
+      await new Promise(resolve => setTimeout(resolve, 100))
+      fetchNeon()
+      fetchGithub()
+
+      // Small delay before fourth batch
+      await new Promise(resolve => setTimeout(resolve, 100))
+      fetchUptime()
+      fetchSentry()
+    }
+
+    loadData()
   }, [session, status, router])
+
+  // Helper to fetch with retry on 401 (handles race condition with session verification)
+  const fetchWithRetry = async (url: string, retries = 2): Promise<Response> => {
+    let lastResponse: Response | null = null
+    for (let i = 0; i < retries; i++) {
+      const response = await fetch(url)
+      if (response.status !== 401 || i === retries - 1) {
+        return response
+      }
+      lastResponse = response
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 200 * (i + 1)))
+    }
+    return lastResponse!
+  }
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/stats')
+      const response = await fetchWithRetry('/api/admin/stats')
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -484,7 +515,7 @@ export default function AdminPage() {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await fetch('/api/admin/analytics')
+      const response = await fetchWithRetry('/api/admin/analytics')
       const data = await response.json()
       setAnalytics(data)
     } catch (error) {
@@ -498,7 +529,7 @@ export default function AdminPage() {
   const fetchCloudflare = async () => {
     setCloudflareLoading(true)
     try {
-      const response = await fetch('/api/admin/cloudflare')
+      const response = await fetchWithRetry('/api/admin/cloudflare')
       const data = await response.json()
       setCloudflare(data)
     } catch (error) {
@@ -512,7 +543,7 @@ export default function AdminPage() {
   const fetchVercel = async () => {
     setVercelLoading(true)
     try {
-      const response = await fetch('/api/admin/vercel')
+      const response = await fetchWithRetry('/api/admin/vercel')
       const data = await response.json()
       setVercel(data)
     } catch (error) {
@@ -526,7 +557,7 @@ export default function AdminPage() {
   const fetchNeon = async () => {
     setNeonLoading(true)
     try {
-      const response = await fetch('/api/admin/neon')
+      const response = await fetchWithRetry('/api/admin/neon')
       const data = await response.json()
       setNeon(data)
     } catch (error) {
@@ -540,7 +571,7 @@ export default function AdminPage() {
   const fetchGithub = async () => {
     setGithubLoading(true)
     try {
-      const response = await fetch('/api/admin/github')
+      const response = await fetchWithRetry('/api/admin/github')
       const data = await response.json()
       setGithub(data)
     } catch (error) {
@@ -554,7 +585,7 @@ export default function AdminPage() {
   const fetchUptime = async () => {
     setUptimeLoading(true)
     try {
-      const response = await fetch('/api/admin/uptimerobot')
+      const response = await fetchWithRetry('/api/admin/uptimerobot')
       const data = await response.json()
       setUptime(data)
     } catch (error) {
@@ -568,7 +599,7 @@ export default function AdminPage() {
   const fetchSentry = async () => {
     setSentryLoading(true)
     try {
-      const response = await fetch('/api/admin/sentry')
+      const response = await fetchWithRetry('/api/admin/sentry')
       const data = await response.json()
       setSentry(data)
     } catch (error) {
