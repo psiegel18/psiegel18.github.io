@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { S3Client, ListObjectsV2Command, ListBucketsCommand } from '@aws-sdk/client-s3'
 
 export const dynamic = 'force-dynamic'
 
 const R2_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'personalblog'
 
 // R2 free tier limits
 const R2_FREE_STORAGE_GB = 10 // 10 GB free storage
@@ -62,6 +61,144 @@ function getDirectory(key: string): string {
   return parts.slice(0, -1).join('/') || '/'
 }
 
+type BucketStats = {
+  name: string
+  createdAt?: string
+  totalFiles: number
+  totalBytes: number
+  totalFormatted: string
+  byType: Array<{
+    type: string
+    count: number
+    bytes: number
+    formatted: string
+    percent: string
+  }>
+  byDirectory: Array<{
+    directory: string
+    count: number
+    bytes: number
+    formatted: string
+    percent: string
+  }>
+  recentUploads: Array<{
+    key: string
+    name: string
+    size: string
+    lastModified: string
+  }>
+}
+
+async function getBucketStats(r2Client: S3Client, bucketName: string, createdAt?: Date): Promise<BucketStats> {
+  // List all objects in the bucket (paginated)
+  let allObjects: { Key?: string; Size?: number; LastModified?: Date }[] = []
+  let continuationToken: string | undefined
+
+  try {
+    do {
+      const response = await r2Client.send(new ListObjectsV2Command({
+        Bucket: bucketName,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000,
+      }))
+
+      if (response.Contents) {
+        allObjects = allObjects.concat(response.Contents)
+      }
+
+      continuationToken = response.NextContinuationToken
+    } while (continuationToken)
+  } catch (error) {
+    console.error(`Failed to list objects in bucket ${bucketName}:`, error)
+    // Return empty stats if we can't access the bucket
+    return {
+      name: bucketName,
+      createdAt: createdAt?.toISOString(),
+      totalFiles: 0,
+      totalBytes: 0,
+      totalFormatted: '0 B',
+      byType: [],
+      byDirectory: [],
+      recentUploads: [],
+    }
+  }
+
+  // Calculate total storage used
+  const totalBytes = allObjects.reduce((sum, obj) => sum + (obj.Size || 0), 0)
+
+  // Group by file type
+  const byType: Record<string, { count: number; bytes: number }> = {}
+  for (const obj of allObjects) {
+    const type = getFileType(obj.Key || '')
+    if (!byType[type]) {
+      byType[type] = { count: 0, bytes: 0 }
+    }
+    byType[type].count++
+    byType[type].bytes += obj.Size || 0
+  }
+
+  // Group by directory
+  const byDirectory: Record<string, { count: number; bytes: number }> = {}
+  for (const obj of allObjects) {
+    const dir = getDirectory(obj.Key || '')
+    if (!byDirectory[dir]) {
+      byDirectory[dir] = { count: 0, bytes: 0 }
+    }
+    byDirectory[dir].count++
+    byDirectory[dir].bytes += obj.Size || 0
+  }
+
+  // Sort and format type stats
+  const typeStats = Object.entries(byType)
+    .map(([type, data]) => ({
+      type,
+      count: data.count,
+      bytes: data.bytes,
+      formatted: formatBytes(data.bytes),
+      percent: totalBytes > 0 ? ((data.bytes / totalBytes) * 100).toFixed(1) : '0',
+    }))
+    .sort((a, b) => b.bytes - a.bytes)
+
+  // Sort and format directory stats
+  const directoryStats = Object.entries(byDirectory)
+    .map(([directory, data]) => ({
+      directory,
+      count: data.count,
+      bytes: data.bytes,
+      formatted: formatBytes(data.bytes),
+      percent: totalBytes > 0 ? ((data.bytes / totalBytes) * 100).toFixed(1) : '0',
+    }))
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 10) // Top 10 directories
+
+  // Get recent uploads (last 10)
+  const recentUploads = allObjects
+    .filter(obj => obj.LastModified)
+    .sort((a, b) => {
+      const dateA = a.LastModified?.getTime() || 0
+      const dateB = b.LastModified?.getTime() || 0
+      return dateB - dateA
+    })
+    .slice(0, 10)
+    .map(obj => ({
+      key: obj.Key || '',
+      name: obj.Key?.split('/').pop() || obj.Key || '',
+      size: formatBytes(obj.Size || 0),
+      lastModified: obj.LastModified?.toISOString() || '',
+    }))
+
+  return {
+    name: bucketName,
+    createdAt: createdAt?.toISOString(),
+    totalFiles: allObjects.length,
+    totalBytes,
+    totalFormatted: formatBytes(totalBytes),
+    byType: typeStats,
+    byDirectory: directoryStats,
+    recentUploads,
+  }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -78,95 +215,58 @@ export async function GET() {
       })
     }
 
-    // List all objects in the bucket (paginated)
-    let allObjects: { Key?: string; Size?: number; LastModified?: Date }[] = []
-    let continuationToken: string | undefined
+    // List all buckets
+    let bucketList: { Name?: string; CreationDate?: Date }[] = []
+    try {
+      const listBucketsResponse = await r2Client.send(new ListBucketsCommand({}))
+      bucketList = listBucketsResponse.Buckets || []
+    } catch (error) {
+      console.error('Failed to list buckets:', error)
+      return NextResponse.json({
+        configured: false,
+        message: 'Failed to list R2 buckets. Check your API credentials.',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
 
-    do {
-      const response = await r2Client.send(new ListObjectsV2Command({
-        Bucket: R2_BUCKET_NAME,
-        ContinuationToken: continuationToken,
-        MaxKeys: 1000,
-      }))
+    if (bucketList.length === 0) {
+      return NextResponse.json({
+        configured: true,
+        buckets: [],
+        summary: {
+          totalBuckets: 0,
+          totalFiles: 0,
+          totalBytes: 0,
+          totalFormatted: '0 B',
+          freeStorageBytes: R2_FREE_STORAGE_BYTES,
+          freeStorageFormatted: formatBytes(R2_FREE_STORAGE_BYTES),
+          usedPercent: '0',
+          remainingBytes: R2_FREE_STORAGE_BYTES,
+          remainingFormatted: formatBytes(R2_FREE_STORAGE_BYTES),
+        },
+        message: 'No buckets found in R2.',
+      })
+    }
 
-      if (response.Contents) {
-        allObjects = allObjects.concat(response.Contents)
-      }
+    // Get stats for each bucket
+    const bucketStats: BucketStats[] = await Promise.all(
+      bucketList.map(bucket =>
+        getBucketStats(r2Client, bucket.Name || '', bucket.CreationDate)
+      )
+    )
 
-      continuationToken = response.NextContinuationToken
-    } while (continuationToken)
-
-    // Calculate total storage used
-    const totalBytes = allObjects.reduce((sum, obj) => sum + (obj.Size || 0), 0)
+    // Calculate totals across all buckets
+    const totalFiles = bucketStats.reduce((sum, b) => sum + b.totalFiles, 0)
+    const totalBytes = bucketStats.reduce((sum, b) => sum + b.totalBytes, 0)
     const storageUsedPercent = (totalBytes / R2_FREE_STORAGE_BYTES) * 100
     const storageRemaining = R2_FREE_STORAGE_BYTES - totalBytes
 
-    // Group by file type
-    const byType: Record<string, { count: number; bytes: number }> = {}
-    for (const obj of allObjects) {
-      const type = getFileType(obj.Key || '')
-      if (!byType[type]) {
-        byType[type] = { count: 0, bytes: 0 }
-      }
-      byType[type].count++
-      byType[type].bytes += obj.Size || 0
-    }
-
-    // Group by directory
-    const byDirectory: Record<string, { count: number; bytes: number }> = {}
-    for (const obj of allObjects) {
-      const dir = getDirectory(obj.Key || '')
-      if (!byDirectory[dir]) {
-        byDirectory[dir] = { count: 0, bytes: 0 }
-      }
-      byDirectory[dir].count++
-      byDirectory[dir].bytes += obj.Size || 0
-    }
-
-    // Sort and format type stats
-    const typeStats = Object.entries(byType)
-      .map(([type, data]) => ({
-        type,
-        count: data.count,
-        bytes: data.bytes,
-        formatted: formatBytes(data.bytes),
-        percent: totalBytes > 0 ? ((data.bytes / totalBytes) * 100).toFixed(1) : '0',
-      }))
-      .sort((a, b) => b.bytes - a.bytes)
-
-    // Sort and format directory stats
-    const directoryStats = Object.entries(byDirectory)
-      .map(([directory, data]) => ({
-        directory,
-        count: data.count,
-        bytes: data.bytes,
-        formatted: formatBytes(data.bytes),
-        percent: totalBytes > 0 ? ((data.bytes / totalBytes) * 100).toFixed(1) : '0',
-      }))
-      .sort((a, b) => b.bytes - a.bytes)
-      .slice(0, 10) // Top 10 directories
-
-    // Get recent uploads (last 10)
-    const recentUploads = allObjects
-      .filter(obj => obj.LastModified)
-      .sort((a, b) => {
-        const dateA = a.LastModified?.getTime() || 0
-        const dateB = b.LastModified?.getTime() || 0
-        return dateB - dateA
-      })
-      .slice(0, 10)
-      .map(obj => ({
-        key: obj.Key,
-        name: obj.Key?.split('/').pop() || obj.Key,
-        size: formatBytes(obj.Size || 0),
-        lastModified: obj.LastModified?.toISOString(),
-      }))
-
     return NextResponse.json({
       configured: true,
-      bucket: R2_BUCKET_NAME,
+      buckets: bucketStats,
       summary: {
-        totalFiles: allObjects.length,
+        totalBuckets: bucketStats.length,
+        totalFiles,
         totalBytes,
         totalFormatted: formatBytes(totalBytes),
         freeStorageBytes: R2_FREE_STORAGE_BYTES,
@@ -175,9 +275,6 @@ export async function GET() {
         remainingBytes: storageRemaining,
         remainingFormatted: formatBytes(storageRemaining),
       },
-      byType: typeStats,
-      byDirectory: directoryStats,
-      recentUploads,
     })
   } catch (error) {
     console.error('Failed to get R2 stats:', error)

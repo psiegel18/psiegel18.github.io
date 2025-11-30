@@ -419,12 +419,41 @@ type SentryData = {
   }>
 }
 
+type R2BucketStats = {
+  name: string
+  createdAt?: string
+  totalFiles: number
+  totalBytes: number
+  totalFormatted: string
+  byType: Array<{
+    type: string
+    count: number
+    bytes: number
+    formatted: string
+    percent: string
+  }>
+  byDirectory: Array<{
+    directory: string
+    count: number
+    bytes: number
+    formatted: string
+    percent: string
+  }>
+  recentUploads: Array<{
+    key: string
+    name: string
+    size: string
+    lastModified: string
+  }>
+}
+
 type R2Data = {
   configured: boolean
   message?: string
   error?: string
-  bucket?: string
+  buckets?: R2BucketStats[]
   summary?: {
+    totalBuckets: number
     totalFiles: number
     totalBytes: number
     totalFormatted: string
@@ -434,32 +463,12 @@ type R2Data = {
     remainingBytes: number
     remainingFormatted: string
   }
-  byType?: Array<{
-    type: string
-    count: number
-    bytes: number
-    formatted: string
-    percent: string
-  }>
-  byDirectory?: Array<{
-    directory: string
-    count: number
-    bytes: number
-    formatted: string
-    percent: string
-  }>
-  recentUploads?: Array<{
-    key: string
-    name: string
-    size: string
-    lastModified: string
-  }>
 }
 
 // Tab definitions
 type TabId = 'metrics' | 'monitoring' | 'analytics' | 'infrastructure' | 'development'
-type InfraTabId = 'cloudflare' | 'vercel' | 'neon'
-type MonitoringTabId = 'uptime' | 'sentry' | 'r2'
+type InfraTabId = 'cloudflare' | 'vercel' | 'neon' | 'r2'
+type MonitoringTabId = 'uptime' | 'sentry'
 
 const tabs: { id: TabId; title: string; icon: string; iconColor: string }[] = [
   { id: 'metrics', title: 'Site Metrics', icon: 'fas fa-chart-pie', iconColor: 'text-primary-400' },
@@ -473,12 +482,12 @@ const infraTabs: { id: InfraTabId; title: string; icon: string; iconColor: strin
   { id: 'cloudflare', title: 'Cloudflare', icon: 'fas fa-cloud', iconColor: 'text-orange-500' },
   { id: 'vercel', title: 'Vercel', icon: 'fas fa-triangle', iconColor: 'text-white' },
   { id: 'neon', title: 'Neon', icon: 'fas fa-database', iconColor: 'text-green-400' },
+  { id: 'r2', title: 'R2 Storage', icon: 'fas fa-hdd', iconColor: 'text-orange-400' },
 ]
 
 const monitoringTabs: { id: MonitoringTabId; title: string; icon: string; iconColor: string }[] = [
   { id: 'uptime', title: 'UptimeRobot', icon: 'fas fa-signal', iconColor: 'text-green-400' },
   { id: 'sentry', title: 'Sentry', icon: 'fas fa-bug', iconColor: 'text-purple-400' },
-  { id: 'r2', title: 'R2 Storage', icon: 'fas fa-hdd', iconColor: 'text-orange-400' },
 ]
 
 export default function AdminPage() {
@@ -507,6 +516,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
   const [activeInfraTab, setActiveInfraTab] = useState<InfraTabId>('cloudflare')
   const [activeMonitoringTab, setActiveMonitoringTab] = useState<MonitoringTabId>('uptime')
+  const [activeR2Bucket, setActiveR2Bucket] = useState<string>('')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -1262,150 +1272,6 @@ export default function AdminPage() {
           </div>
           )}
 
-          {/* R2 Storage */}
-          {activeMonitoringTab === 'r2' && (
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
-                <i className="fas fa-hdd text-orange-400 mr-2" />
-                R2 Storage
-              </h3>
-              <button onClick={fetchR2} className="btn-secondary text-sm" disabled={r2Loading}>
-                <i className={`fas fa-sync-alt mr-2 ${r2Loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
-            {r2Loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-400" />
-              </div>
-            ) : !r2?.configured ? (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <p className="text-yellow-400"><i className="fas fa-exclamation-triangle mr-2" />{r2?.message || 'R2 not configured'}</p>
-                <p className="text-gray-400 text-sm mt-2">Add <code className="bg-dark-400 px-1 rounded">R2_ACCESS_KEY_ID</code>, <code className="bg-dark-400 px-1 rounded">R2_SECRET_ACCESS_KEY</code>, and <code className="bg-dark-400 px-1 rounded">CLOUDFLARE_ACCOUNT_ID</code> to enable.</p>
-              </div>
-            ) : (
-              <>
-                {/* Storage summary */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Total Files</p>
-                    <p className="text-2xl font-bold text-blue-400">{r2.summary?.totalFiles || 0}</p>
-                  </div>
-                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Storage Used</p>
-                    <p className="text-2xl font-bold text-orange-400">{r2.summary?.totalFormatted || '0 B'}</p>
-                  </div>
-                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Storage Left</p>
-                    <p className="text-2xl font-bold text-green-400">{r2.summary?.remainingFormatted || '10 GB'}</p>
-                  </div>
-                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Used %</p>
-                    <p className="text-2xl font-bold text-yellow-400">{r2.summary?.usedPercent || '0'}%</p>
-                  </div>
-                </div>
-
-                {/* Storage bar */}
-                <div className="mb-6">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400">Storage Usage</span>
-                    <span className="text-gray-400">{r2.summary?.totalFormatted} / {r2.summary?.freeStorageFormatted}</span>
-                  </div>
-                  <div className="h-3 bg-dark-400 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        parseFloat(r2.summary?.usedPercent || '0') > 80 ? 'bg-red-500' :
-                        parseFloat(r2.summary?.usedPercent || '0') > 50 ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${Math.min(parseFloat(r2.summary?.usedPercent || '0'), 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* By Type */}
-                  {r2.byType && r2.byType.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">By File Type</h4>
-                      <div className="space-y-2">
-                        {r2.byType.map((type) => (
-                          <div key={type.type} className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-2">
-                            <div className="flex items-center gap-2">
-                              <i className={`fas ${
-                                type.type === 'Images' ? 'fa-image text-blue-400' :
-                                type.type === 'Videos' ? 'fa-video text-purple-400' :
-                                type.type === 'Audio' ? 'fa-music text-green-400' :
-                                type.type === 'Documents' ? 'fa-file-alt text-yellow-400' :
-                                type.type === 'Archives' ? 'fa-file-archive text-orange-400' :
-                                'fa-file text-gray-400'
-                              }`} />
-                              <span className="text-sm">{type.type}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                              <span className="text-gray-500">{type.count} files</span>
-                              <span className="text-gray-400">{type.formatted}</span>
-                              <span className="text-gray-500 w-12 text-right">{type.percent}%</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* By Directory */}
-                  {r2.byDirectory && r2.byDirectory.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">By Directory</h4>
-                      <div className="space-y-2">
-                        {r2.byDirectory.map((dir) => (
-                          <div key={dir.directory} className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <i className="fas fa-folder text-yellow-400" />
-                              <span className="text-sm truncate">{dir.directory || '/'}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm flex-shrink-0">
-                              <span className="text-gray-500">{dir.count} files</span>
-                              <span className="text-gray-400">{dir.formatted}</span>
-                              <span className="text-gray-500 w-12 text-right">{dir.percent}%</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Recent uploads */}
-                {r2.recentUploads && r2.recentUploads.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Recent Uploads</h4>
-                    <div className="space-y-2">
-                      {r2.recentUploads.slice(0, 5).map((file) => (
-                        <div key={file.key} className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <i className="fas fa-file text-gray-400" />
-                            <span className="text-sm truncate">{file.name}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm text-gray-500 flex-shrink-0">
-                            <span>{file.size}</span>
-                            <span>{file.lastModified ? new Date(file.lastModified).toLocaleDateString() : '-'}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3 mt-4">
-                  <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
-                    <i className="fas fa-external-link-alt mr-2" />Cloudflare Dashboard
-                  </a>
-                </div>
-              </>
-            )}
-          </div>
-          )}
           </div>
         )}
 
@@ -2366,6 +2232,198 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+          )}
+
+          {/* R2 Storage */}
+          {activeInfraTab === 'r2' && (
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                <i className="fas fa-hdd text-orange-400 mr-2" />
+                R2 Storage
+              </h3>
+              <button onClick={fetchR2} className="btn-secondary text-sm" disabled={r2Loading}>
+                <i className={`fas fa-sync-alt mr-2 ${r2Loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+            {r2Loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-400" />
+              </div>
+            ) : !r2?.configured ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-yellow-400"><i className="fas fa-exclamation-triangle mr-2" />{r2?.message || 'R2 not configured'}</p>
+                <p className="text-gray-400 text-sm mt-2">Add <code className="bg-dark-400 px-1 rounded">R2_ACCESS_KEY_ID</code>, <code className="bg-dark-400 px-1 rounded">R2_SECRET_ACCESS_KEY</code>, and <code className="bg-dark-400 px-1 rounded">CLOUDFLARE_ACCOUNT_ID</code> to enable.</p>
+              </div>
+            ) : (
+              <>
+                {/* Overall summary */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Buckets</p>
+                    <p className="text-2xl font-bold text-purple-400">{r2.summary?.totalBuckets || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Total Files</p>
+                    <p className="text-2xl font-bold text-blue-400">{r2.summary?.totalFiles || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Storage Used</p>
+                    <p className="text-2xl font-bold text-orange-400">{r2.summary?.totalFormatted || '0 B'}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Storage Left</p>
+                    <p className="text-2xl font-bold text-green-400">{r2.summary?.remainingFormatted || '10 GB'}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Used %</p>
+                    <p className="text-2xl font-bold text-yellow-400">{r2.summary?.usedPercent || '0'}%</p>
+                  </div>
+                </div>
+
+                {/* Storage bar */}
+                <div className="mb-6">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-400">Total Storage Usage</span>
+                    <span className="text-gray-400">{r2.summary?.totalFormatted} / {r2.summary?.freeStorageFormatted}</span>
+                  </div>
+                  <div className="h-3 bg-dark-400 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        parseFloat(r2.summary?.usedPercent || '0') > 80 ? 'bg-red-500' :
+                        parseFloat(r2.summary?.usedPercent || '0') > 50 ? 'bg-yellow-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(parseFloat(r2.summary?.usedPercent || '0'), 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Bucket tabs */}
+                {r2.buckets && r2.buckets.length > 0 && (
+                  <>
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                      {r2.buckets.map((bucket) => (
+                        <button
+                          key={bucket.name}
+                          onClick={() => setActiveR2Bucket(bucket.name)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap text-sm ${
+                            (activeR2Bucket === bucket.name || (!activeR2Bucket && r2.buckets?.[0]?.name === bucket.name))
+                              ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
+                              : 'bg-dark-400/50 text-gray-400 hover:bg-dark-400 border border-transparent'
+                          }`}
+                        >
+                          <i className="fas fa-bucket" />
+                          {bucket.name}
+                          <span className="text-xs opacity-70">({bucket.totalFiles} files)</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Active bucket details */}
+                    {r2.buckets.map((bucket) => {
+                      const isActive = activeR2Bucket === bucket.name || (!activeR2Bucket && r2.buckets?.[0]?.name === bucket.name)
+                      if (!isActive) return null
+
+                      return (
+                        <div key={bucket.name} className="bg-dark-400/20 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="font-medium">{bucket.name}</h4>
+                              <p className="text-sm text-gray-500">
+                                {bucket.totalFiles} files • {bucket.totalFormatted}
+                                {bucket.createdAt && ` • Created ${new Date(bucket.createdAt).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* By Type */}
+                            {bucket.byType && bucket.byType.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">By File Type</h5>
+                                <div className="space-y-2">
+                                  {bucket.byType.map((type) => (
+                                    <div key={type.type} className="flex items-center justify-between bg-dark-500/50 rounded-lg px-4 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <i className={`fas ${
+                                          type.type === 'Images' ? 'fa-image text-blue-400' :
+                                          type.type === 'Videos' ? 'fa-video text-purple-400' :
+                                          type.type === 'Audio' ? 'fa-music text-green-400' :
+                                          type.type === 'Documents' ? 'fa-file-alt text-yellow-400' :
+                                          type.type === 'Archives' ? 'fa-file-archive text-orange-400' :
+                                          'fa-file text-gray-400'
+                                        }`} />
+                                        <span className="text-sm">{type.type}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-sm">
+                                        <span className="text-gray-500">{type.count} files</span>
+                                        <span className="text-gray-400">{type.formatted}</span>
+                                        <span className="text-gray-500 w-12 text-right">{type.percent}%</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* By Directory */}
+                            {bucket.byDirectory && bucket.byDirectory.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">By Directory</h5>
+                                <div className="space-y-2">
+                                  {bucket.byDirectory.map((dir) => (
+                                    <div key={dir.directory} className="flex items-center justify-between bg-dark-500/50 rounded-lg px-4 py-2">
+                                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <i className="fas fa-folder text-yellow-400" />
+                                        <span className="text-sm truncate">{dir.directory || '/'}</span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-sm flex-shrink-0">
+                                        <span className="text-gray-500">{dir.count} files</span>
+                                        <span className="text-gray-400">{dir.formatted}</span>
+                                        <span className="text-gray-500 w-12 text-right">{dir.percent}%</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Recent uploads */}
+                          {bucket.recentUploads && bucket.recentUploads.length > 0 && (
+                            <div className="mt-6">
+                              <h5 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Recent Uploads</h5>
+                              <div className="space-y-2">
+                                {bucket.recentUploads.slice(0, 5).map((file) => (
+                                  <div key={file.key} className="flex items-center justify-between bg-dark-500/50 rounded-lg px-4 py-2">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <i className="fas fa-file text-gray-400" />
+                                      <span className="text-sm truncate">{file.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-500 flex-shrink-0">
+                                      <span>{file.size}</span>
+                                      <span>{file.lastModified ? new Date(file.lastModified).toLocaleDateString() : '-'}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+
+                <div className="flex gap-3 mt-4">
+                  <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                    <i className="fas fa-external-link-alt mr-2" />Cloudflare Dashboard
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
           )}
           </div>
         )}
