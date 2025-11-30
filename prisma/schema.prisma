@@ -17,6 +17,7 @@ model Account {
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
+  ext_expires_in    Int?    // Microsoft/Azure AD specific field
   token_type        String?
   scope             String?
   id_token          String? @db.Text
