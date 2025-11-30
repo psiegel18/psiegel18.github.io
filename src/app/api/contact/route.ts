@@ -68,7 +68,7 @@ This message was sent from the contact form at psiegel.org
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Psiegel.org <noreply@psiegel.org>',
+          from: 'Psiegel.org <admin@psiegel.org>',
           to: recipient,
           reply_to: email,
           subject,
