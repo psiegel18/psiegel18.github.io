@@ -259,9 +259,11 @@ export async function GET() {
     console.error('Sentry API error:', error)
     return NextResponse.json(
       {
-        configured: false,
+        configured: true, // Token is configured, but API call failed
         error: 'Failed to fetch Sentry data',
         details: error instanceof Error ? error.message : 'Unknown error',
+        // Include org slug for debugging (first 3 chars only)
+        orgPreview: process.env.SENTRY_ORG?.slice(0, 3) + '...',
       },
       { status: 500 }
     )
