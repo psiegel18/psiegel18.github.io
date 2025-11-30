@@ -544,9 +544,105 @@ type R2Data = {
   }
 }
 
+type CloudinaryData = {
+  configured: boolean
+  message?: string
+  error?: string
+  cloudName?: string
+  summary?: {
+    totalResources: number
+    totalStorage: number
+    totalBandwidth: number
+    totalTransformations: number
+    creditsUsed: number
+    creditsLimit: number
+    creditsUsedPercent: number
+    plan: string
+  }
+  usage?: {
+    plan: string
+    lastUpdated: string
+    transformations: number
+    bandwidth: number
+    storage: number
+    requests: number
+    derivedResources: number
+  }
+  resources?: Array<{
+    publicId: string
+    format: string
+    resourceType: string
+    createdAt: string
+    bytes: number
+    width?: number
+    height?: number
+    url: string
+    folder: string
+  }>
+  folders?: Array<{ name: string; path: string }>
+  byType?: Array<{ type: string; count: number; bytes: number }>
+  byFormat?: Array<{ format: string; count: number; bytes: number }>
+}
+
+type MongoDBData = {
+  configured: boolean
+  message?: string
+  error?: string
+  organization?: {
+    id: string
+    name: string
+  }
+  summary?: {
+    totalProjects: number
+    totalClusters: number
+    activeClusters: number
+    pausedClusters: number
+    totalDatabaseUsers: number
+    openAlerts: number
+    totalStorageGB: number
+  }
+  projects?: Array<{
+    id: string
+    name: string
+    clusterCount: number
+    created: string
+  }>
+  clusters?: Array<{
+    id: string
+    name: string
+    projectId: string
+    projectName: string
+    clusterType: string
+    mongoDBVersion: string
+    stateName: string
+    paused: boolean
+    diskSizeGB: number
+    provider: string
+    region: string
+    instanceSize: string
+    connectionString?: string
+    created: string
+  }>
+  databaseUsers?: Array<{
+    username: string
+    projectName: string
+    authDatabase: string
+    roles: Array<{ roleName: string; databaseName: string }>
+  }>
+  alerts?: Array<{
+    id: string
+    projectName: string
+    eventType: string
+    status: string
+    clusterName?: string
+    created: string
+    resolved?: string
+  }>
+}
+
 // Tab definitions
 type TabId = 'metrics' | 'monitoring' | 'analytics' | 'infrastructure' | 'development'
-type InfraTabId = 'cloudflare' | 'vercel' | 'neon' | 'r2'
+type InfraTabId = 'cloudflare' | 'vercel' | 'neon' | 'r2' | 'cloudinary' | 'mongodb'
 type MonitoringTabId = 'uptime' | 'sentry'
 
 const tabs: { id: TabId; title: string; icon: string; iconColor: string }[] = [
@@ -561,7 +657,9 @@ const infraTabs: { id: InfraTabId; title: string; icon: string; iconColor: strin
   { id: 'cloudflare', title: 'Cloudflare', icon: 'fas fa-cloud', iconColor: 'text-orange-500' },
   { id: 'vercel', title: 'Vercel', icon: 'fas fa-triangle', iconColor: 'text-white' },
   { id: 'neon', title: 'Neon', icon: 'fas fa-database', iconColor: 'text-green-400' },
+  { id: 'mongodb', title: 'MongoDB', icon: 'fas fa-leaf', iconColor: 'text-green-500' },
   { id: 'r2', title: 'R2 Storage', icon: 'fas fa-hdd', iconColor: 'text-orange-400' },
+  { id: 'cloudinary', title: 'Cloudinary', icon: 'fas fa-images', iconColor: 'text-blue-400' },
 ]
 
 const monitoringTabs: { id: MonitoringTabId; title: string; icon: string; iconColor: string }[] = [
@@ -589,6 +687,10 @@ export default function AdminPage() {
   const [sentryLoading, setSentryLoading] = useState(true)
   const [r2, setR2] = useState<R2Data | null>(null)
   const [r2Loading, setR2Loading] = useState(true)
+  const [cloudinary, setCloudinary] = useState<CloudinaryData | null>(null)
+  const [cloudinaryLoading, setCloudinaryLoading] = useState(true)
+  const [mongodb, setMongodb] = useState<MongoDBData | null>(null)
+  const [mongodbLoading, setMongodbLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   // Active tab state
@@ -627,6 +729,11 @@ export default function AdminPage() {
       fetchUptime()
       fetchSentry()
       fetchR2()
+
+      // Fifth batch - new services
+      await new Promise(resolve => setTimeout(resolve, 100))
+      fetchCloudinary()
+      fetchMongodb()
     }
 
     loadData()
@@ -769,6 +876,34 @@ export default function AdminPage() {
       setR2({ configured: false, error: 'Failed to fetch R2 data' })
     } finally {
       setR2Loading(false)
+    }
+  }
+
+  const fetchCloudinary = async () => {
+    setCloudinaryLoading(true)
+    try {
+      const response = await fetchWithRetry('/api/admin/cloudinary')
+      const data = await response.json()
+      setCloudinary(data)
+    } catch (error) {
+      console.error('Failed to fetch Cloudinary data:', error)
+      setCloudinary({ configured: false, error: 'Failed to fetch Cloudinary data' })
+    } finally {
+      setCloudinaryLoading(false)
+    }
+  }
+
+  const fetchMongodb = async () => {
+    setMongodbLoading(true)
+    try {
+      const response = await fetchWithRetry('/api/admin/mongodb')
+      const data = await response.json()
+      setMongodb(data)
+    } catch (error) {
+      console.error('Failed to fetch MongoDB data:', error)
+      setMongodb({ configured: false, error: 'Failed to fetch MongoDB data' })
+    } finally {
+      setMongodbLoading(false)
     }
   }
 
@@ -2789,6 +2924,311 @@ export default function AdminPage() {
                   <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
                     <i className="fas fa-external-link-alt mr-2" />Cloudflare Dashboard
                   </a>
+                </div>
+              </>
+            )}
+          </div>
+          )}
+
+          {/* Cloudinary */}
+          {activeInfraTab === 'cloudinary' && (
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                <i className="fas fa-images text-blue-400 mr-2" />
+                Cloudinary
+              </h3>
+              <button onClick={fetchCloudinary} className="btn-secondary text-sm" disabled={cloudinaryLoading}>
+                <i className={`fas fa-sync-alt mr-2 ${cloudinaryLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+            {cloudinaryLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400" />
+              </div>
+            ) : !cloudinary?.configured ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-yellow-400"><i className="fas fa-exclamation-triangle mr-2" />{cloudinary?.message || 'Cloudinary not configured'}</p>
+                <p className="text-gray-400 text-sm mt-2">Add <code className="bg-dark-400 px-1 rounded">CLOUDINARY_CLOUD_NAME</code>, <code className="bg-dark-400 px-1 rounded">CLOUDINARY_API_KEY</code>, and <code className="bg-dark-400 px-1 rounded">CLOUDINARY_API_SECRET</code> to enable.</p>
+              </div>
+            ) : (
+              <>
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Total Resources</p>
+                    <p className="text-2xl font-bold text-blue-400">{formatNumber(cloudinary.summary?.totalResources || 0)}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Storage Used</p>
+                    <p className="text-2xl font-bold text-purple-400">{formatBytes(cloudinary.summary?.totalStorage || 0)}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Bandwidth</p>
+                    <p className="text-2xl font-bold text-green-400">{formatBytes(cloudinary.summary?.totalBandwidth || 0)}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Transformations</p>
+                    <p className="text-2xl font-bold text-orange-400">{formatNumber(cloudinary.summary?.totalTransformations || 0)}</p>
+                  </div>
+                </div>
+
+                {/* Credits usage */}
+                {cloudinary.summary?.creditsLimit && cloudinary.summary.creditsLimit > 0 && (
+                  <div className="mb-6">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-gray-400">Credits Usage ({cloudinary.summary?.plan})</span>
+                      <span className="text-gray-400">{cloudinary.summary?.creditsUsedPercent?.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-3 bg-dark-400 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (cloudinary.summary?.creditsUsedPercent || 0) > 80 ? 'bg-red-500' :
+                          (cloudinary.summary?.creditsUsedPercent || 0) > 50 ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${Math.min(cloudinary.summary?.creditsUsedPercent || 0, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Resources by format */}
+                {cloudinary.byFormat && cloudinary.byFormat.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">By Format</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {cloudinary.byFormat.slice(0, 8).map((item) => (
+                        <div key={item.format} className="bg-dark-400/30 rounded px-3 py-2 flex justify-between items-center">
+                          <span className="text-sm font-medium uppercase">{item.format}</span>
+                          <span className="text-xs text-gray-500">{item.count} ({formatBytes(item.bytes)})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent resources */}
+                {cloudinary.resources && cloudinary.resources.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Recent Resources</h4>
+                    <div className="space-y-2">
+                      {cloudinary.resources.slice(0, 8).map((resource) => (
+                        <a
+                          key={resource.publicId}
+                          href={resource.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between bg-dark-400/30 rounded px-3 py-2 hover:bg-dark-400/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <i className={`fas ${resource.resourceType === 'video' ? 'fa-video' : 'fa-image'} text-blue-400`} />
+                            <span className="text-sm truncate">{resource.publicId}</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-dark-300 rounded uppercase">{resource.format}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 flex-shrink-0">
+                            {resource.width && resource.height && (
+                              <span>{resource.width}x{resource.height}</span>
+                            )}
+                            <span>{formatBytes(resource.bytes)}</span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Folders */}
+                {cloudinary.folders && cloudinary.folders.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Folders</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {cloudinary.folders.map((folder) => (
+                        <span key={folder.path} className="bg-dark-400/30 rounded px-3 py-1 text-sm">
+                          <i className="fas fa-folder text-yellow-400 mr-2" />
+                          {folder.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-t border-dark-100/50 pt-4 mt-4">
+                  <div className="flex flex-wrap items-center gap-4 mb-4">
+                    {cloudinary.cloudName && (
+                      <div>
+                        <span className="text-gray-400 text-sm">Cloud: </span>
+                        <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">{cloudinary.cloudName}</code>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <a href="https://console.cloudinary.com" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                      <i className="fas fa-external-link-alt mr-2" />Cloudinary Console
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          )}
+
+          {/* MongoDB */}
+          {activeInfraTab === 'mongodb' && (
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                <i className="fas fa-leaf text-green-500 mr-2" />
+                MongoDB Atlas
+              </h3>
+              <button onClick={fetchMongodb} className="btn-secondary text-sm" disabled={mongodbLoading}>
+                <i className={`fas fa-sync-alt mr-2 ${mongodbLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+            {mongodbLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500" />
+              </div>
+            ) : !mongodb?.configured ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-yellow-400"><i className="fas fa-exclamation-triangle mr-2" />{mongodb?.message || 'MongoDB Atlas not configured'}</p>
+                <p className="text-gray-400 text-sm mt-2">Add <code className="bg-dark-400 px-1 rounded">MONGODB_ATLAS_PUBLIC_KEY</code> and <code className="bg-dark-400 px-1 rounded">MONGODB_ATLAS_PRIVATE_KEY</code> to enable.</p>
+              </div>
+            ) : (
+              <>
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Projects</p>
+                    <p className="text-2xl font-bold text-green-400">{mongodb.summary?.totalProjects || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Clusters</p>
+                    <p className="text-2xl font-bold text-blue-400">{mongodb.summary?.totalClusters || 0}</p>
+                    {mongodb.summary?.pausedClusters ? (
+                      <p className="text-xs text-gray-500">{mongodb.summary.activeClusters} active, {mongodb.summary.pausedClusters} paused</p>
+                    ) : null}
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">DB Users</p>
+                    <p className="text-2xl font-bold text-purple-400">{mongodb.summary?.totalDatabaseUsers || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Storage</p>
+                    <p className="text-2xl font-bold text-orange-400">{mongodb.summary?.totalStorageGB || 0} GB</p>
+                  </div>
+                </div>
+
+                {/* Open Alerts */}
+                {mongodb.alerts && mongodb.alerts.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
+                      <i className="fas fa-exclamation-circle text-red-400 mr-2" />
+                      Open Alerts ({mongodb.alerts.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {mongodb.alerts.map((alert) => (
+                        <div key={alert.id} className="bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-red-400">{alert.eventType.replace(/_/g, ' ')}</span>
+                              {alert.clusterName && (
+                                <span className="text-xs px-1.5 py-0.5 bg-dark-300 rounded">{alert.clusterName}</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">{new Date(alert.created).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Clusters */}
+                {mongodb.clusters && mongodb.clusters.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Clusters</h4>
+                    <div className="space-y-3">
+                      {mongodb.clusters.map((cluster) => (
+                        <div key={cluster.id} className="bg-dark-400/30 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${
+                                cluster.paused ? 'bg-yellow-400' :
+                                cluster.stateName === 'IDLE' ? 'bg-green-400' : 'bg-gray-400'
+                              }`} />
+                              <span className="font-medium">{cluster.name}</span>
+                              <span className="text-xs px-1.5 py-0.5 bg-dark-300 rounded">{cluster.projectName}</span>
+                              {cluster.paused && (
+                                <span className="text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">Paused</span>
+                              )}
+                            </div>
+                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                              MongoDB {cluster.mongoDBVersion}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-xs text-gray-500">Provider</p>
+                              <p className="font-medium">{cluster.provider || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Region</p>
+                              <p className="font-medium">{cluster.region || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Instance</p>
+                              <p className="font-medium">{cluster.instanceSize || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Storage</p>
+                              <p className="font-medium">{cluster.diskSizeGB || 0} GB</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Database Users */}
+                {mongodb.databaseUsers && mongodb.databaseUsers.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Database Users</h4>
+                    <div className="space-y-2">
+                      {mongodb.databaseUsers.slice(0, 5).map((user, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-dark-400/30 rounded px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <i className="fas fa-user text-purple-400" />
+                            <span className="text-sm font-medium">{user.username}</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-dark-300 rounded">{user.projectName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {user.roles.slice(0, 2).map((role, i) => (
+                              <span key={i} className="text-xs text-gray-500">{role.roleName}@{role.databaseName}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-t border-dark-100/50 pt-4 mt-4">
+                  <div className="flex flex-wrap items-center gap-4 mb-4">
+                    {mongodb.organization && (
+                      <div>
+                        <span className="text-gray-400 text-sm">Organization: </span>
+                        <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">{mongodb.organization.name}</code>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <a href="https://cloud.mongodb.com" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                      <i className="fas fa-external-link-alt mr-2" />MongoDB Atlas
+                    </a>
+                  </div>
                 </div>
               </>
             )}
