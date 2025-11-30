@@ -13,7 +13,9 @@ export const metadata: Metadata = {
   title: 'Psiegel.org',
   description: 'Personal website with games, tools, and more',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/psiegel_frog.ico',
+    shortcut: '/psiegel_frog.ico',
+    apple: '/psiegel_frog.png',
   },
 }
 
@@ -22,11 +24,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID
-
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/psiegel_frog.ico" sizes="any" />
+        <link rel="icon" href="/psiegel_frog.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/psiegel_frog.png" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link
@@ -34,22 +37,18 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
         />
         {/* Google Analytics */}
-        {gaId && (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
-            />
-            <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaId}');
-              `}
-            </Script>
-          </>
-        )}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-V3J7C7JJWC"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-V3J7C7JJWC');
+          `}
+        </Script>
       </head>
       <body className={inter.className}>
         <Providers>
