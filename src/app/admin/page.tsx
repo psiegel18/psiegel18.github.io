@@ -101,6 +101,57 @@ type CloudflareData = {
   }>
 }
 
+type VercelData = {
+  configured: boolean
+  message?: string
+  error?: string
+  user?: {
+    email: string
+    name: string
+    username: string
+  }
+  teamId?: string | null
+  summary?: {
+    totalProjects: number
+    totalDomains: number
+    deploymentsLast24h: number
+    deploymentsLast7d: number
+    successRate: number
+  }
+  projects?: Array<{
+    id: string
+    name: string
+    framework: string | null
+    updatedAt: number
+    createdAt: number
+  }>
+  deployments?: Array<{
+    id: string
+    name: string
+    url: string
+    state: string
+    readyState: string
+    createdAt: number
+    buildingAt?: number
+    ready?: number
+    source?: string
+    commitMessage?: string
+    commitRef?: string
+    commitSha?: string
+  }>
+  domains?: Array<{
+    name: string
+    apexName: string
+    verified: boolean
+    createdAt: number
+  }>
+  stats?: {
+    successful: number
+    failed: number
+    building: number
+  }
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -109,6 +160,8 @@ export default function AdminPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [cloudflare, setCloudflare] = useState<CloudflareData | null>(null)
   const [cloudflareLoading, setCloudflareLoading] = useState(true)
+  const [vercel, setVercel] = useState<VercelData | null>(null)
+  const [vercelLoading, setVercelLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -122,6 +175,7 @@ export default function AdminPage() {
     fetchStats()
     fetchAnalytics()
     fetchCloudflare()
+    fetchVercel()
   }, [session, status, router])
 
   const fetchStats = async () => {
@@ -165,6 +219,20 @@ export default function AdminPage() {
     }
   }
 
+  const fetchVercel = async () => {
+    setVercelLoading(true)
+    try {
+      const response = await fetch('/api/admin/vercel')
+      const data = await response.json()
+      setVercel(data)
+    } catch (error) {
+      console.error('Failed to fetch Vercel data:', error)
+      setVercel({ configured: false, error: 'Failed to fetch Vercel data' })
+    } finally {
+      setVercelLoading(false)
+    }
+  }
+
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B'
     const k = 1024
@@ -191,6 +259,42 @@ export default function AdminPage() {
     const month = dateStr.slice(4, 6)
     const day = dateStr.slice(6, 8)
     return `${month}/${day}`
+  }
+
+  const formatRelativeTime = (timestamp: number) => {
+    const now = Date.now()
+    const diff = now - timestamp
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return 'just now'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return new Date(timestamp).toLocaleDateString()
+  }
+
+  const getDeploymentStatusColor = (state: string) => {
+    switch (state.toUpperCase()) {
+      case 'READY': return 'bg-green-400'
+      case 'BUILDING': return 'bg-yellow-400 animate-pulse'
+      case 'ERROR': return 'bg-red-400'
+      case 'CANCELED': return 'bg-gray-400'
+      case 'QUEUED': return 'bg-blue-400'
+      default: return 'bg-gray-400'
+    }
+  }
+
+  const getDeploymentStatusText = (state: string) => {
+    switch (state.toUpperCase()) {
+      case 'READY': return 'text-green-400'
+      case 'BUILDING': return 'text-yellow-400'
+      case 'ERROR': return 'text-red-400'
+      case 'CANCELED': return 'text-gray-400'
+      case 'QUEUED': return 'text-blue-400'
+      default: return 'text-gray-400'
+    }
   }
 
   if (status === 'loading' || loading) {
@@ -759,6 +863,237 @@ export default function AdminPage() {
               >
                 <i className="fas fa-database mr-2" />
                 R2 Storage
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Vercel */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              <i className="fas fa-triangle text-white mr-2" />
+              Vercel
+            </h2>
+            <button
+              onClick={fetchVercel}
+              className="btn-secondary text-sm"
+              disabled={vercelLoading}
+            >
+              <i className={`fas fa-sync-alt mr-2 ${vercelLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {vercelLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white" />
+            </div>
+          ) : !vercel?.configured ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-yellow-400">
+                <i className="fas fa-exclamation-triangle mr-2" />
+                {vercel?.message || vercel?.error || 'Vercel API not configured'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                To enable Vercel integration, add the following environment variables:
+              </p>
+              <ul className="text-gray-400 text-sm mt-2 space-y-1">
+                <li><code className="bg-dark-400 px-1 rounded">VERCEL_API_TOKEN</code> - Your Vercel API token (Account Settings → Tokens)</li>
+                <li><code className="bg-dark-400 px-1 rounded">VERCEL_TEAM_ID</code> - (Optional) Team ID for team accounts</li>
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Projects</p>
+                  <p className="text-3xl font-bold text-white">
+                    {vercel.summary?.totalProjects || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Domains</p>
+                  <p className="text-3xl font-bold text-blue-400">
+                    {vercel.summary?.totalDomains || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Deploys (24h)</p>
+                  <p className="text-3xl font-bold text-green-400">
+                    {vercel.summary?.deploymentsLast24h || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Success Rate</p>
+                  <p className="text-3xl font-bold text-green-400">
+                    {vercel.summary?.successRate || 100}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Recent Deployments */}
+              {vercel.deployments && vercel.deployments.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Deployments</h3>
+                  <div className="space-y-2">
+                    {vercel.deployments.slice(0, 5).map((deployment) => (
+                      <div key={deployment.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDeploymentStatusColor(deployment.readyState || deployment.state)}`} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium truncate">{deployment.name}</span>
+                              {deployment.commitSha && (
+                                <code className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                                  {deployment.commitSha}
+                                </code>
+                              )}
+                            </div>
+                            {deployment.commitMessage && (
+                              <p className="text-xs text-gray-500 truncate">{deployment.commitMessage}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm flex-shrink-0">
+                          <span className={`capitalize text-xs ${getDeploymentStatusText(deployment.readyState || deployment.state)}`}>
+                            {(deployment.readyState || deployment.state).toLowerCase()}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatRelativeTime(deployment.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Projects & Domains */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Projects */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Projects</h3>
+                  <div className="space-y-2">
+                    {vercel.projects?.slice(0, 5).map((project) => (
+                      <div key={project.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{project.name}</span>
+                          {project.framework && (
+                            <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                              {project.framework}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {(!vercel.projects || vercel.projects.length === 0) && (
+                      <p className="text-gray-500 text-sm">No projects found</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Domains */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Domains</h3>
+                  <div className="space-y-2">
+                    {vercel.domains?.slice(0, 5).map((domain) => (
+                      <div key={domain.name} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${domain.verified ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                          <span className="text-sm">{domain.name}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {domain.verified ? 'Verified' : 'Pending'}
+                        </span>
+                      </div>
+                    ))}
+                    {(!vercel.domains || vercel.domains.length === 0) && (
+                      <p className="text-gray-500 text-sm">No domains found</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Deployment Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-green-400" />
+                    <p className="text-gray-400 text-sm">Successful</p>
+                  </div>
+                  <p className="text-xl font-semibold text-green-400">
+                    {vercel.stats?.successful || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                    <p className="text-gray-400 text-sm">Building</p>
+                  </div>
+                  <p className="text-xl font-semibold text-yellow-400">
+                    {vercel.stats?.building || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-red-400" />
+                    <p className="text-gray-400 text-sm">Failed</p>
+                  </div>
+                  <p className="text-xl font-semibold text-red-400">
+                    {vercel.stats?.failed || 0}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Links */}
+          <div className="border-t border-dark-100/50 pt-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {vercel?.user?.username && (
+                <div>
+                  <span className="text-gray-400 text-sm">Account: </span>
+                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
+                    @{vercel.user.username}
+                  </code>
+                </div>
+              )}
+              {vercel?.configured && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                  <i className="fas fa-check-circle mr-1" />
+                  Connected
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://vercel.com/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-external-link-alt mr-2" />
+                Vercel Dashboard
+              </a>
+              <a
+                href="https://vercel.com/dashboard/deployments"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-rocket mr-2" />
+                All Deployments
+              </a>
+              <a
+                href="https://vercel.com/dashboard/domains"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-globe mr-2" />
+                Domains
               </a>
             </div>
           </div>
