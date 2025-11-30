@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,11 +61,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File too large. Max size: 10MB' }, { status: 400 })
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'jpg'
-    const timestamp = Date.now()
-    const randomStr = Math.random().toString(36).substring(2, 8)
-    const filename = `personalblog/${timestamp}-${randomStr}.${ext}`
+    // Get original filename and generate unique key if needed
+    const originalName = file.name
+    const lastDotIndex = originalName.lastIndexOf('.')
+    const baseName = lastDotIndex > 0 ? originalName.substring(0, lastDotIndex) : originalName
+    const ext = lastDotIndex > 0 ? originalName.substring(lastDotIndex) : ''
+
+    // Sanitize filename (remove problematic characters)
+    const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_')
+
+    // Check for existing files with the same name
+    let filename = `personalblog/${sanitizedBaseName}${ext}`
+    let counter = 0
+
+    try {
+      const existingFiles = await r2Client.send(new ListObjectsV2Command({
+        Bucket: R2_BUCKET_NAME,
+        Prefix: 'personalblog/',
+      }))
+
+      const existingKeys = new Set(existingFiles.Contents?.map(obj => obj.Key) || [])
+
+      // Find a unique filename
+      while (existingKeys.has(filename)) {
+        counter++
+        filename = `personalblog/${sanitizedBaseName}(${counter})${ext}`
+      }
+    } catch {
+      // If listing fails, add timestamp to ensure uniqueness
+      filename = `personalblog/${sanitizedBaseName}-${Date.now()}${ext}`
+    }
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
@@ -80,9 +105,16 @@ export async function POST(request: NextRequest) {
     }))
 
     // Generate public URL
-    const publicUrl = R2_PUBLIC_URL
-      ? `${R2_PUBLIC_URL}/${filename}`
-      : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`
+    // R2 requires either a custom domain or R2.dev public URL to be configured
+    if (!R2_PUBLIC_URL) {
+      return NextResponse.json({
+        error: 'R2_PUBLIC_URL not configured',
+        message: 'Set R2_PUBLIC_URL to your R2 public URL (custom domain or r2.dev URL)',
+        uploadedKey: filename, // Still return the key so they can configure later
+      }, { status: 500 })
+    }
+
+    const publicUrl = `${R2_PUBLIC_URL}/${filename}`
 
     return NextResponse.json({
       success: true,

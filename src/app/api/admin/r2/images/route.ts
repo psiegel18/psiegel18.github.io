@@ -42,6 +42,13 @@ export async function GET() {
       })
     }
 
+    if (!R2_PUBLIC_URL) {
+      return NextResponse.json({
+        configured: false,
+        message: 'R2_PUBLIC_URL not configured. Set it to your R2 public URL (custom domain or r2.dev URL).',
+      })
+    }
+
     // List objects in the personalblog directory
     const response = await r2Client.send(new ListObjectsV2Command({
       Bucket: R2_BUCKET_NAME,
@@ -57,13 +64,9 @@ export async function GET() {
       })
       .map(obj => {
         const key = obj.Key || ''
-        const publicUrl = R2_PUBLIC_URL
-          ? `${R2_PUBLIC_URL}/${key}`
-          : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`
-
         return {
           key,
-          url: publicUrl,
+          url: `${R2_PUBLIC_URL}/${key}`,
           size: obj.Size,
           lastModified: obj.LastModified?.toISOString(),
           name: key.split('/').pop() || key,
