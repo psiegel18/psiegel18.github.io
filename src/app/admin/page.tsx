@@ -410,6 +410,7 @@ type SentryData = {
 
 // Tab definitions
 type TabId = 'metrics' | 'monitoring' | 'analytics' | 'infrastructure' | 'development'
+type InfraTabId = 'cloudflare' | 'vercel' | 'neon'
 
 const tabs: { id: TabId; title: string; icon: string; iconColor: string }[] = [
   { id: 'metrics', title: 'Site Metrics', icon: 'fas fa-chart-pie', iconColor: 'text-primary-400' },
@@ -417,6 +418,12 @@ const tabs: { id: TabId; title: string; icon: string; iconColor: string }[] = [
   { id: 'analytics', title: 'Analytics', icon: 'fas fa-chart-line', iconColor: 'text-orange-400' },
   { id: 'infrastructure', title: 'Infrastructure', icon: 'fas fa-server', iconColor: 'text-blue-400' },
   { id: 'development', title: 'Development', icon: 'fab fa-github', iconColor: 'text-white' },
+]
+
+const infraTabs: { id: InfraTabId; title: string; icon: string; iconColor: string }[] = [
+  { id: 'cloudflare', title: 'Cloudflare', icon: 'fas fa-cloud', iconColor: 'text-orange-500' },
+  { id: 'vercel', title: 'Vercel', icon: 'fas fa-triangle', iconColor: 'text-white' },
+  { id: 'neon', title: 'Neon', icon: 'fas fa-database', iconColor: 'text-green-400' },
 ]
 
 export default function AdminPage() {
@@ -441,6 +448,7 @@ export default function AdminPage() {
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
+  const [activeInfraTab, setActiveInfraTab] = useState<InfraTabId>('cloudflare')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -1285,7 +1293,26 @@ export default function AdminPage() {
         {/* ==================== INFRASTRUCTURE TAB ==================== */}
         {activeTab === 'infrastructure' && (
           <div>
+          {/* Infrastructure Sub-tabs */}
+          <div className="flex gap-2 mb-6 p-1 bg-dark-400/50 rounded-lg w-fit">
+            {infraTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveInfraTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all ${
+                  activeInfraTab === tab.id
+                    ? 'bg-dark-300 text-white shadow'
+                    : 'text-gray-400 hover:text-white hover:bg-dark-300/50'
+                }`}
+              >
+                <i className={`${tab.icon} ${activeInfraTab === tab.id ? tab.iconColor : ''}`} />
+                {tab.title}
+              </button>
+            ))}
+          </div>
+
           {/* Cloudflare */}
+          {activeInfraTab === 'cloudflare' && (
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -1510,8 +1537,10 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+          )}
 
-        {/* Vercel */}
+          {/* Vercel */}
+          {activeInfraTab === 'vercel' && (
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -1758,8 +1787,10 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+          )}
 
-        {/* Neon Postgres */}
+          {/* Neon Postgres */}
+          {activeInfraTab === 'neon' && (
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -2028,6 +2059,7 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+          )}
           </div>
         )}
 

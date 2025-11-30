@@ -49,6 +49,8 @@ model User {
   accounts Account[]
   sessions Session[]
   scores   Score[]
+  posts    Post[]
+  comments Comment[]
 }
 
 model VerificationToken {
@@ -108,4 +110,37 @@ enum Role {
 enum Game {
   SNAKE
   TETRIS
+}
+
+// Blog models
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String    @db.Text
+  excerpt     String?   @db.Text
+  coverImage  String?
+  published   Boolean   @default(false)
+  authorId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+
+  @@index([slug])
+  @@index([published, createdAt(sort: Desc)])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String
+  postId    String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt(sort: Desc)])
 }

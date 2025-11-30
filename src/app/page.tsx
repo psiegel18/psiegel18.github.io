@@ -17,6 +17,13 @@ const features = [
     color: 'from-blue-500 to-cyan-600',
   },
   {
+    title: 'Blog',
+    description: 'Thoughts, updates, and stories',
+    icon: 'fa-blog',
+    href: '/blog',
+    color: 'from-indigo-500 to-purple-600',
+  },
+  {
     title: 'Birthday Calculator',
     description: 'Find out what day of the week you were born',
     icon: 'fa-birthday-cake',
