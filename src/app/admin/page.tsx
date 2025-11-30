@@ -41,12 +41,74 @@ type AnalyticsData = {
   dailyData?: { date: string; users: number; sessions: number }[]
 }
 
+type CloudflareData = {
+  configured: boolean
+  message?: string
+  error?: string
+  accountId?: string | null
+  user?: {
+    email: string
+  }
+  summary?: {
+    totalZones: number
+    totalWorkers: number
+    totalPages: number
+    totalR2Buckets: number
+    last24h: {
+      requests: number
+      bandwidth: number
+      threats: number
+    }
+  }
+  zones?: Array<{
+    id: string
+    name: string
+    status: string
+    paused: boolean
+    type: string
+    developmentMode: boolean
+    nameServers: string[]
+    createdOn: string
+    modifiedOn: string
+  }>
+  zoneAnalytics?: Record<string, {
+    requests: number
+    bandwidth: number
+    threats: number
+    pageViews: number
+  }>
+  workers?: Array<{
+    id: string
+    name: string
+    createdOn: string
+    modifiedOn: string
+  }>
+  pages?: Array<{
+    name: string
+    subdomain: string
+    productionBranch: string
+    createdOn: string
+    latestDeployment?: {
+      id: string
+      url: string
+      environment: string
+      createdOn: string
+    }
+  }>
+  r2Buckets?: Array<{
+    name: string
+    creationDate: string
+  }>
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
+  const [cloudflare, setCloudflare] = useState<CloudflareData | null>(null)
+  const [cloudflareLoading, setCloudflareLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -59,6 +121,7 @@ export default function AdminPage() {
 
     fetchStats()
     fetchAnalytics()
+    fetchCloudflare()
   }, [session, status, router])
 
   const fetchStats = async () => {
@@ -86,6 +149,34 @@ export default function AdminPage() {
     } finally {
       setAnalyticsLoading(false)
     }
+  }
+
+  const fetchCloudflare = async () => {
+    setCloudflareLoading(true)
+    try {
+      const response = await fetch('/api/admin/cloudflare')
+      const data = await response.json()
+      setCloudflare(data)
+    } catch (error) {
+      console.error('Failed to fetch Cloudflare data:', error)
+      setCloudflare({ configured: false, error: 'Failed to fetch Cloudflare data' })
+    } finally {
+      setCloudflareLoading(false)
+    }
+  }
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+  }
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+    return num.toString()
   }
 
   const formatDuration = (seconds: number) => {
@@ -442,6 +533,232 @@ export default function AdminPage() {
               >
                 <i className="fas fa-clock mr-2" />
                 Real-Time View
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Cloudflare */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              <i className="fas fa-cloud text-orange-500 mr-2" />
+              Cloudflare
+            </h2>
+            <button
+              onClick={fetchCloudflare}
+              className="btn-secondary text-sm"
+              disabled={cloudflareLoading}
+            >
+              <i className={`fas fa-sync-alt mr-2 ${cloudflareLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {cloudflareLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500" />
+            </div>
+          ) : !cloudflare?.configured ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-yellow-400">
+                <i className="fas fa-exclamation-triangle mr-2" />
+                {cloudflare?.message || cloudflare?.error || 'Cloudflare API not configured'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                To enable Cloudflare integration, add the following environment variables in Vercel:
+              </p>
+              <ul className="text-gray-400 text-sm mt-2 space-y-1">
+                <li><code className="bg-dark-400 px-1 rounded">CLOUDFLARE_API_TOKEN</code> - Your API token with Zone, Workers, R2, and Pages read permissions</li>
+                <li><code className="bg-dark-400 px-1 rounded">CLOUDFLARE_ACCOUNT_ID</code> - Your account ID (for Workers, Pages, and R2)</li>
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Domains</p>
+                  <p className="text-3xl font-bold text-orange-400">
+                    {cloudflare.summary?.totalZones || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Workers</p>
+                  <p className="text-3xl font-bold text-blue-400">
+                    {cloudflare.summary?.totalWorkers || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Pages Projects</p>
+                  <p className="text-3xl font-bold text-green-400">
+                    {cloudflare.summary?.totalPages || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">R2 Buckets</p>
+                  <p className="text-3xl font-bold text-purple-400">
+                    {cloudflare.summary?.totalR2Buckets || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* 24h Traffic Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">24h Requests</p>
+                  <p className="text-xl font-semibold">
+                    {formatNumber(cloudflare.summary?.last24h?.requests || 0)}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">24h Bandwidth</p>
+                  <p className="text-xl font-semibold">
+                    {formatBytes(cloudflare.summary?.last24h?.bandwidth || 0)}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">24h Threats Blocked</p>
+                  <p className="text-xl font-semibold text-red-400">
+                    {formatNumber(cloudflare.summary?.last24h?.threats || 0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Domains */}
+              {cloudflare.zones && cloudflare.zones.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Domains</h3>
+                  <div className="space-y-2">
+                    {cloudflare.zones.map((zone) => (
+                      <div key={zone.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${zone.status === 'active' ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                          <span className="text-sm font-medium">{zone.name}</span>
+                          {zone.developmentMode && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">Dev Mode</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-400">
+                          {cloudflare.zoneAnalytics?.[zone.id] && (
+                            <span>{formatNumber(cloudflare.zoneAnalytics[zone.id].requests)} req/24h</span>
+                          )}
+                          <span className="capitalize">{zone.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Workers & Pages */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Workers */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Workers</h3>
+                  <div className="space-y-2">
+                    {cloudflare.workers?.map((worker) => (
+                      <div key={worker.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <span className="text-sm">{worker.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(worker.modifiedOn).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                    {(!cloudflare.workers || cloudflare.workers.length === 0) && (
+                      <p className="text-gray-500 text-sm">No workers found</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pages */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Pages Projects</h3>
+                  <div className="space-y-2">
+                    {cloudflare.pages?.map((project) => (
+                      <div key={project.name} className="bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{project.name}</span>
+                          <span className="text-xs text-gray-500">{project.productionBranch}</span>
+                        </div>
+                        {project.latestDeployment && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Last deployed: {new Date(project.latestDeployment.createdOn).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {(!cloudflare.pages || cloudflare.pages.length === 0) && (
+                      <p className="text-gray-500 text-sm">No pages projects found</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* R2 Buckets */}
+              {cloudflare.r2Buckets && cloudflare.r2Buckets.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">R2 Buckets</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {cloudflare.r2Buckets.map((bucket) => (
+                      <div key={bucket.name} className="bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <i className="fas fa-database text-purple-400 text-xs" />
+                          <span className="text-sm">{bucket.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Links */}
+          <div className="border-t border-dark-100/50 pt-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {cloudflare?.user?.email && (
+                <div>
+                  <span className="text-gray-400 text-sm">Account: </span>
+                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
+                    {cloudflare.user.email}
+                  </code>
+                </div>
+              )}
+              {cloudflare?.configured && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                  <i className="fas fa-check-circle mr-1" />
+                  Connected
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://dash.cloudflare.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-external-link-alt mr-2" />
+                Cloudflare Dashboard
+              </a>
+              <a
+                href="https://dash.cloudflare.com/?to=/:account/workers-and-pages"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-code mr-2" />
+                Workers & Pages
+              </a>
+              <a
+                href="https://dash.cloudflare.com/?to=/:account/r2"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-database mr-2" />
+                R2 Storage
               </a>
             </div>
           </div>
