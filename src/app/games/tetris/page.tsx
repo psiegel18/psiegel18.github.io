@@ -370,6 +370,11 @@ export default function TetrisPage() {
         const piece = currentPieceRef.current
         if (!piece) return
 
+        // Prevent arrow keys from scrolling the page
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          e.preventDefault()
+        }
+
         switch (e.key) {
           case 'ArrowLeft':
             if (canMove(-1, 0)) piece.x--
