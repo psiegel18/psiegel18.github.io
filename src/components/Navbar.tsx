@@ -18,6 +18,13 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
+            <Image
+              src="/psiegel_frog.png"
+              alt="Psiegel Logo"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
             <span className="text-2xl font-bold text-gradient">Psiegel.org</span>
           </Link>
 
