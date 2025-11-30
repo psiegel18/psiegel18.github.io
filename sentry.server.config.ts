@@ -13,12 +13,17 @@ Sentry.init({
   // Set environment for filtering in Sentry dashboard
   environment: process.env.VERCEL_ENV || process.env.NODE_ENV,
 
+  // Enable Sentry logging
+  enableLogs: true,
+
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 1,
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 
-  // Uncomment the line below to enable Spotlight (https://spotlightjs.com)
-  // spotlight: process.env.NODE_ENV === 'development',
+  // Send console.warn and console.error calls as logs to Sentry
+  integrations: [
+    Sentry.consoleLoggingIntegration({ levels: ["warn", "error"] }),
+  ],
 });

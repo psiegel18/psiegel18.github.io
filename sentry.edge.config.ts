@@ -14,6 +14,9 @@ Sentry.init({
   // Set environment for filtering in Sentry dashboard
   environment: process.env.VERCEL_ENV || process.env.NODE_ENV,
 
+  // Enable Sentry logging
+  enableLogs: true,
+
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 1,
 
