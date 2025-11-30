@@ -62,7 +62,7 @@ export default function Home() {
                 alt="Psiegel Logo"
                 width={120}
                 height={120}
-                className="rounded-full"
+                className="rounded-2xl"
                 priority
               />
             </div>
