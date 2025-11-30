@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { AutoGuestLogin } from '@/components/AutoGuestLogin'
 
 const features = [
   {
@@ -50,9 +49,7 @@ const features = [
 
 export default function Home() {
   return (
-    <>
-      <AutoGuestLogin />
-      <div className="min-h-screen">
+    <div className="min-h-screen">
         {/* Hero Section */}
         <section className="relative py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center">
@@ -148,6 +145,5 @@ export default function Home() {
           </div>
         </footer>
       </div>
-    </>
   )
 }
