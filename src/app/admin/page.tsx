@@ -54,6 +54,12 @@ type CloudflareData = {
     totalWorkers: number
     totalPages: number
     totalR2Buckets: number
+    totalDnsRecords?: number
+    sslWarningsCount?: number
+    r2Storage?: {
+      totalObjects: number
+      totalStorageUsed: number
+    }
     last24h: {
       requests: number
       bandwidth: number
@@ -77,6 +83,26 @@ type CloudflareData = {
     threats: number
     pageViews: number
   }>
+  zoneDnsRecords?: Record<string, Array<{
+    id: string
+    type: string
+    name: string
+    content: string
+    proxied: boolean
+    ttl: number
+  }>>
+  zoneSslCerts?: Record<string, {
+    status: string
+    issuer?: string
+    expiresOn?: string
+    daysUntilExpiry?: number
+    hosts?: string[]
+  }>
+  sslWarnings?: Array<{
+    zone: string
+    daysUntilExpiry?: number
+    expiresOn?: string
+  }>
   workers?: Array<{
     id: string
     name: string
@@ -98,6 +124,8 @@ type CloudflareData = {
   r2Buckets?: Array<{
     name: string
     creationDate: string
+    objectCount?: number
+    storageUsed?: number
   }>
 }
 
@@ -169,6 +197,9 @@ type NeonData = {
     totalEndpoints: number
     activeEndpoints: number
     totalStorageBytes: number
+    totalComputeTimeSeconds?: number
+    totalDataTransferBytes?: number
+    totalWrittenDataBytes?: number
   }
   projects?: Array<{
     id: string
@@ -215,6 +246,15 @@ type NeonData = {
     updatedAt: string
     projectName: string
   }>
+  consumption?: Array<{
+    projectName: string
+    dataStorageBytesHour: number
+    syntheticStorageSize: number
+    dataTransferBytes: number
+    writtenDataBytes: number
+    computeTimeSeconds: number
+    activeTimeSeconds: number
+  }>
 }
 
 type GitHubData = {
@@ -238,6 +278,11 @@ type GitHubData = {
     openIssues: number
     openPRs: number
     languages: string[]
+    securityAlerts?: number
+    criticalAlerts?: number
+    highAlerts?: number
+    dependabotAlerts?: number
+    codeScanAlerts?: number
   }
   repos?: Array<{
     id: number
@@ -299,6 +344,17 @@ type GitHubData = {
     event: string
     createdAt: string
     url: string
+  }>
+  securityAlerts?: Array<{
+    type: 'dependabot' | 'code_scanning'
+    repo: string
+    severity: string
+    package?: string
+    ecosystem?: string
+    summary: string
+    url: string
+    createdAt: string
+    state: string
   }>
 }
 
@@ -390,6 +446,7 @@ type SentryData = {
     uniqueUsers: number
     errors24h: number
     transactions24h: number
+    totalReleases?: number
   }
   errorTrend?: {
     intervals: string[]
@@ -416,6 +473,20 @@ type SentryData = {
     errorValue?: string
     filename?: string
     function?: string
+  }>
+  releases?: Array<{
+    version: string
+    shortVersion: string
+    dateCreated: string
+    dateReleased?: string
+    newGroups: number
+    url: string
+    projects: string[]
+    commitCount: number
+    lastDeploy?: {
+      environment: string
+      dateFinished: string
+    }
   }>
 }
 
@@ -1270,10 +1341,64 @@ export default function AdminPage() {
                   </div>
                 )}
 
+                {/* Recent Releases */}
+                {sentry.releases && sentry.releases.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Recent Releases</h4>
+                    <div className="space-y-2">
+                      {sentry.releases.slice(0, 5).map((release) => (
+                        <a
+                          key={release.version}
+                          href={release.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block bg-dark-400/30 rounded-lg p-3 hover:bg-dark-400/50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <i className="fas fa-tag text-green-400 text-sm" />
+                              <span className="font-medium text-sm">{release.shortVersion}</span>
+                              {release.lastDeploy && (
+                                <span className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded">
+                                  {release.lastDeploy.environment}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              {release.commitCount > 0 && (
+                                <span><i className="fas fa-code-commit mr-1" />{release.commitCount}</span>
+                              )}
+                              {release.newGroups > 0 && (
+                                <span className="text-orange-400">{release.newGroups} new issues</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>
+                              {release.projects.slice(0, 3).join(', ')}
+                              {release.projects.length > 3 && ` +${release.projects.length - 3}`}
+                            </span>
+                            <span>
+                              {release.dateReleased
+                                ? new Date(release.dateReleased).toLocaleDateString()
+                                : new Date(release.dateCreated).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3 mt-4">
                   <a href={`https://${sentry.organization}.sentry.io/issues/`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
                     <i className="fas fa-external-link-alt mr-2" />View All in Sentry
                   </a>
+                  {sentry.releases && sentry.releases.length > 0 && (
+                    <a href={`https://${sentry.organization}.sentry.io/releases/`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                      <i className="fas fa-tag mr-2" />View Releases
+                    </a>
+                  )}
                 </div>
               </>
             )}
@@ -1559,7 +1684,7 @@ export default function AdminPage() {
               </div>
 
               {/* 24h Traffic Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <div className="bg-dark-400/50 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">24h Requests</p>
                   <p className="text-xl font-semibold">
@@ -1576,6 +1701,18 @@ export default function AdminPage() {
                   <p className="text-gray-400 text-sm mb-1">24h Threats Blocked</p>
                   <p className="text-xl font-semibold text-red-400">
                     {formatNumber(cloudflare.summary?.last24h?.threats || 0)}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">DNS Records</p>
+                  <p className="text-xl font-semibold text-cyan-400">
+                    {cloudflare.summary?.totalDnsRecords || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">SSL Warnings</p>
+                  <p className={`text-xl font-semibold ${(cloudflare.summary?.sslWarningsCount || 0) > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                    {cloudflare.summary?.sslWarningsCount || 0}
                   </p>
                 </div>
               </div>
@@ -1661,8 +1798,138 @@ export default function AdminPage() {
                           <i className="fas fa-database text-purple-400 text-xs" />
                           <span className="text-sm">{bucket.name}</span>
                         </div>
+                        {(bucket.objectCount !== undefined || bucket.storageUsed !== undefined) && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {bucket.objectCount !== undefined && <span>{formatNumber(bucket.objectCount)} objects</span>}
+                            {bucket.objectCount !== undefined && bucket.storageUsed !== undefined && <span> · </span>}
+                            {bucket.storageUsed !== undefined && <span>{formatBytes(bucket.storageUsed)}</span>}
+                          </div>
+                        )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SSL Warnings */}
+              {cloudflare.sslWarnings && cloudflare.sslWarnings.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">
+                    <i className="fas fa-exclamation-triangle text-yellow-400 mr-2" />
+                    SSL Certificate Warnings
+                  </h3>
+                  <div className="space-y-2">
+                    {cloudflare.sslWarnings.map((warning, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-yellow-500/10 border border-yellow-500/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <i className="fas fa-lock text-yellow-400" />
+                          <span className="text-sm font-medium">{warning.zone}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-yellow-400 font-medium">
+                            {warning.daysUntilExpiry} days
+                          </span>
+                          <span className="text-gray-400 ml-2">
+                            (expires {warning.expiresOn ? new Date(warning.expiresOn).toLocaleDateString() : 'soon'})
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* DNS Records by Zone */}
+              {cloudflare.zoneDnsRecords && Object.keys(cloudflare.zoneDnsRecords).length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">DNS Records</h3>
+                  <div className="space-y-4">
+                    {cloudflare.zones?.filter(z => cloudflare.zoneDnsRecords?.[z.id]?.length).map((zone) => (
+                      <div key={zone.id} className="bg-dark-400/30 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-cyan-400">{zone.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {cloudflare.zoneDnsRecords?.[zone.id]?.length || 0} records
+                          </span>
+                        </div>
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {cloudflare.zoneDnsRecords?.[zone.id]?.slice(0, 10).map((record) => (
+                            <div key={record.id} className="flex items-center justify-between text-xs bg-dark-500/50 rounded px-2 py-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-1.5 py-0.5 rounded font-mono ${
+                                  record.type === 'A' ? 'bg-green-500/20 text-green-400' :
+                                  record.type === 'AAAA' ? 'bg-blue-500/20 text-blue-400' :
+                                  record.type === 'CNAME' ? 'bg-purple-500/20 text-purple-400' :
+                                  record.type === 'MX' ? 'bg-orange-500/20 text-orange-400' :
+                                  record.type === 'TXT' ? 'bg-gray-500/20 text-gray-400' :
+                                  'bg-dark-300 text-gray-400'
+                                }`}>
+                                  {record.type}
+                                </span>
+                                <span className="text-gray-300 truncate max-w-[150px]" title={record.name}>
+                                  {record.name.replace(`.${zone.name}`, '')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500 truncate max-w-[200px]" title={record.content}>
+                                  {record.content.length > 30 ? record.content.slice(0, 30) + '...' : record.content}
+                                </span>
+                                {record.proxied && (
+                                  <span className="text-orange-400" title="Proxied through Cloudflare">
+                                    <i className="fas fa-cloud" />
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {(cloudflare.zoneDnsRecords?.[zone.id]?.length || 0) > 10 && (
+                            <p className="text-xs text-gray-500 text-center py-1">
+                              +{(cloudflare.zoneDnsRecords?.[zone.id]?.length || 0) - 10} more records
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SSL Certificates by Zone */}
+              {cloudflare.zoneSslCerts && Object.keys(cloudflare.zoneSslCerts).length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">SSL Certificates</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {cloudflare.zones?.filter(z => cloudflare.zoneSslCerts?.[z.id]).map((zone) => {
+                      const cert = cloudflare.zoneSslCerts?.[zone.id]
+                      if (!cert) return null
+                      const isWarning = cert.daysUntilExpiry !== undefined && cert.daysUntilExpiry <= 30
+                      return (
+                        <div key={zone.id} className={`rounded-lg p-3 ${isWarning ? 'bg-yellow-500/10 border border-yellow-500/30' : 'bg-dark-400/30'}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">{zone.name}</span>
+                            <span className={`px-2 py-0.5 rounded text-xs ${
+                              cert.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {cert.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 space-y-1">
+                            {cert.issuer && <p>Issuer: {cert.issuer}</p>}
+                            {cert.expiresOn && (
+                              <p className={isWarning ? 'text-yellow-400' : ''}>
+                                Expires: {new Date(cert.expiresOn).toLocaleDateString()}
+                                {cert.daysUntilExpiry !== undefined && ` (${cert.daysUntilExpiry} days)`}
+                              </p>
+                            )}
+                            {cert.hosts && cert.hosts.length > 0 && (
+                              <p className="truncate" title={cert.hosts.join(', ')}>
+                                Hosts: {cert.hosts.slice(0, 2).join(', ')}{cert.hosts.length > 2 ? ` +${cert.hosts.length - 2}` : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -2036,6 +2303,30 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* Consumption Stats (30 days) */}
+              {(neon.summary?.totalComputeTimeSeconds || neon.summary?.totalDataTransferBytes || neon.summary?.totalWrittenDataBytes) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-dark-400/50 rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-1">Compute Time (30d)</p>
+                    <p className="text-xl font-semibold text-cyan-400">
+                      {formatComputeTime(neon.summary?.totalComputeTimeSeconds || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-1">Data Transfer (30d)</p>
+                    <p className="text-xl font-semibold text-yellow-400">
+                      {formatBytes(neon.summary?.totalDataTransferBytes || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-1">Written Data (30d)</p>
+                    <p className="text-xl font-semibold text-pink-400">
+                      {formatBytes(neon.summary?.totalWrittenDataBytes || 0)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Projects */}
               {neon.projects && neon.projects.length > 0 && (
                 <div className="mb-6">
@@ -2142,6 +2433,42 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Per-Project Consumption (30 days) */}
+              {neon.consumption && neon.consumption.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Resource Usage by Project (30 days)</h3>
+                  <div className="space-y-3">
+                    {neon.consumption.map((c) => (
+                      <div key={c.projectName} className="bg-dark-400/30 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`text-sm font-medium px-2 py-1 rounded ${getNeonProjectBadgeColor(c.projectName)}`}>
+                            {c.projectName}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-500">Compute Time</p>
+                            <p className="font-medium text-cyan-400">{formatComputeTime(c.computeTimeSeconds)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Active Time</p>
+                            <p className="font-medium text-green-400">{formatComputeTime(c.activeTimeSeconds)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Data Transfer</p>
+                            <p className="font-medium text-yellow-400">{formatBytes(c.dataTransferBytes)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Written Data</p>
+                            <p className="font-medium text-pink-400">{formatBytes(c.writtenDataBytes)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Recent Operations */}
               {neon.operations && neon.operations.length > 0 && (
@@ -2634,6 +2961,111 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Security Alerts */}
+              {github.securityAlerts && github.securityAlerts.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
+                    <i className="fas fa-shield-alt text-red-400" />
+                    Security Alerts
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      (github.summary?.criticalAlerts || 0) > 0 ? 'bg-red-500/20 text-red-400' :
+                      (github.summary?.highAlerts || 0) > 0 ? 'bg-orange-500/20 text-orange-400' :
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {github.securityAlerts.length} open
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-dark-400/30 rounded-lg p-4">
+                      <div className="text-sm text-gray-400 mb-2">By Severity</div>
+                      <div className="flex gap-4">
+                        {(github.summary?.criticalAlerts || 0) > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-red-500" />
+                            <span className="text-sm text-red-400">{github.summary?.criticalAlerts} Critical</span>
+                          </div>
+                        )}
+                        {(github.summary?.highAlerts || 0) > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-orange-500" />
+                            <span className="text-sm text-orange-400">{github.summary?.highAlerts} High</span>
+                          </div>
+                        )}
+                        {github.securityAlerts.filter(a => a.severity === 'medium').length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                            <span className="text-sm text-yellow-400">{github.securityAlerts.filter(a => a.severity === 'medium').length} Medium</span>
+                          </div>
+                        )}
+                        {github.securityAlerts.filter(a => a.severity === 'low').length > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-sm text-blue-400">{github.securityAlerts.filter(a => a.severity === 'low').length} Low</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-dark-400/30 rounded-lg p-4">
+                      <div className="text-sm text-gray-400 mb-2">By Type</div>
+                      <div className="flex gap-4">
+                        {(github.summary?.dependabotAlerts || 0) > 0 && (
+                          <div className="flex items-center gap-1">
+                            <i className="fas fa-robot text-purple-400 text-xs" />
+                            <span className="text-sm">{github.summary?.dependabotAlerts} Dependabot</span>
+                          </div>
+                        )}
+                        {(github.summary?.codeScanAlerts || 0) > 0 && (
+                          <div className="flex items-center gap-1">
+                            <i className="fas fa-search text-cyan-400 text-xs" />
+                            <span className="text-sm">{github.summary?.codeScanAlerts} Code Scanning</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {github.securityAlerts.slice(0, 8).map((alert, idx) => (
+                      <a
+                        key={idx}
+                        href={alert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-3 hover:bg-dark-400/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${
+                            alert.severity === 'critical' ? 'bg-red-500' :
+                            alert.severity === 'high' ? 'bg-orange-500' :
+                            alert.severity === 'medium' ? 'bg-yellow-500' :
+                            'bg-blue-500'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm truncate">{alert.summary}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                              <span>{alert.repo}</span>
+                              {alert.package && <span>• {alert.package}</span>}
+                              <span className={`px-1.5 py-0.5 rounded ${
+                                alert.type === 'dependabot' ? 'bg-purple-500/20 text-purple-400' : 'bg-cyan-500/20 text-cyan-400'
+                              }`}>
+                                {alert.type === 'dependabot' ? 'Dependabot' : 'Code Scan'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded capitalize ${
+                          alert.severity === 'critical' ? 'bg-red-500/20 text-red-400' :
+                          alert.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                          alert.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {alert.severity}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Open Issues & PRs */}
               {((github.issues && github.issues.length > 0) || (github.pullRequests && github.pullRequests.length > 0)) && (
