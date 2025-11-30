@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -170,9 +171,18 @@ export default function BirthdayPage() {
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="card p-6 md:p-8">
-          <h1 className="text-3xl font-bold text-center mb-8">
-            Birthdate to Weekday Calculator
-          </h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold">
+              Birthdate to Weekday Calculator
+            </h1>
+            <Link
+              href="/tools/birthday/api"
+              className="btn-secondary text-sm"
+            >
+              <i className="fas fa-code mr-2" />
+              Public API
+            </Link>
+          </div>
 
           {/* Input Form */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
