@@ -7,6 +7,12 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
+  // Only send errors in production (or preview deployments)
+  enabled: process.env.NODE_ENV === 'production',
+
+  // Set environment for filtering in Sentry dashboard
+  environment: process.env.VERCEL_ENV || process.env.NODE_ENV,
+
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 1,
 
