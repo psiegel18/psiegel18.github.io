@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 
-const GA_PROPERTY_ID = '469893186'
+const GA_PROPERTY_ID = '514665322'
 
 export async function GET() {
   try {
@@ -22,13 +22,33 @@ export async function GET() {
     }
 
     // Parse credentials from environment variable
-    const credentials = JSON.parse(process.env.GOOGLE_ANALYTICS_CREDENTIALS)
+    let credentials
+    try {
+      credentials = JSON.parse(process.env.GOOGLE_ANALYTICS_CREDENTIALS)
+    } catch (parseError) {
+      console.error('Failed to parse GOOGLE_ANALYTICS_CREDENTIALS:', parseError)
+      return NextResponse.json({
+        configured: false,
+        error: 'Invalid GOOGLE_ANALYTICS_CREDENTIALS format. Must be valid JSON.',
+        details: parseError instanceof Error ? parseError.message : 'JSON parse error'
+      }, { status: 500 })
+    }
+
+    if (!credentials.client_email || !credentials.private_key) {
+      return NextResponse.json({
+        configured: false,
+        error: 'GOOGLE_ANALYTICS_CREDENTIALS must contain client_email and private_key fields.',
+      }, { status: 500 })
+    }
+
+    // Fix newlines in private_key - Vercel often escapes \n as \\n
+    const privateKey = credentials.private_key.replace(/\\n/g, '\n')
 
     // Initialize the Analytics Data client
     const analyticsDataClient = new BetaAnalyticsDataClient({
       credentials: {
         client_email: credentials.client_email,
-        private_key: credentials.private_key,
+        private_key: privateKey,
       },
     })
 
