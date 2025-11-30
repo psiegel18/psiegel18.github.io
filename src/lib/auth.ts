@@ -71,11 +71,11 @@ export const authOptions: NextAuthOptions = {
       }
       return true
     },
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger, session }: { token: any; user?: any; trigger?: string; session?: any }) {
       if (user) {
         token.id = user.id
-        token.role = (user as any).role || 'USER'
-        token.isGuest = (user as any).isGuest || false
+        token.role = user.role || 'USER'
+        token.isGuest = user.isGuest || false
       }
 
       // Handle session update (e.g., guest upgrading to full account)
@@ -86,11 +86,11 @@ export const authOptions: NextAuthOptions = {
 
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user) {
-        (session.user as any).id = token.id
-        (session.user as any).role = token.role
-        (session.user as any).isGuest = token.isGuest
+        session.user.id = token.id as string
+        session.user.role = token.role
+        session.user.isGuest = token.isGuest
       }
       return session
     },
