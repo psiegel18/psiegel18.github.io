@@ -408,6 +408,44 @@ type SentryData = {
   }>
 }
 
+// Collapsible Section Component
+function CollapsibleSection({
+  id,
+  title,
+  icon,
+  iconColor,
+  isCollapsed,
+  onToggle,
+  badge,
+  children
+}: {
+  id: string
+  title: string
+  icon: string
+  iconColor: string
+  isCollapsed: boolean
+  onToggle: () => void
+  badge?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="mb-8">
+      <div
+        className="flex items-center justify-between mb-4 pb-3 border-b border-dark-100/50 cursor-pointer hover:opacity-80"
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-3">
+          <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'down'} text-gray-400 text-sm w-4`} />
+          <i className={`${icon} ${iconColor} text-xl`} />
+          <h2 className="text-xl font-bold">{title}</h2>
+        </div>
+        {badge}
+      </div>
+      {!isCollapsed && children}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -427,6 +465,10 @@ export default function AdminPage() {
   const [sentry, setSentry] = useState<SentryData | null>(null)
   const [sentryLoading, setSentryLoading] = useState(true)
   const [loading, setLoading] = useState(true)
+
+  // Collapsible sections state
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const toggle = (section: string) => setCollapsed(prev => ({ ...prev, [section]: !prev[section] }))
 
   useEffect(() => {
     if (status === 'loading') return
@@ -734,14 +776,36 @@ export default function AdminPage() {
             <i className="fas fa-cog text-primary-400 mr-3" />
             Admin Dashboard
           </h1>
-          <Link href="/admin/house" className="btn-secondary">
-            <i className="fas fa-home mr-2" />
-            The House
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                const sections = ['metrics', 'monitoring', 'analytics', 'infrastructure', 'development']
+                const allCollapsed = sections.every(s => collapsed[s])
+                setCollapsed(sections.reduce((acc, s) => ({ ...acc, [s]: !allCollapsed }), {}))
+              }}
+              className="btn-secondary text-sm"
+            >
+              <i className="fas fa-compress-arrows-alt mr-2" />
+              Toggle All
+            </button>
+            <Link href="/admin/house" className="btn-secondary">
+              <i className="fas fa-home mr-2" />
+              The House
+            </Link>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* ==================== SITE METRICS ==================== */}
+        <CollapsibleSection
+          id="metrics"
+          title="Site Metrics"
+          icon="fas fa-chart-pie"
+          iconColor="text-primary-400"
+          isCollapsed={collapsed.metrics}
+          onToggle={() => toggle('metrics')}
+        >
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="card p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -874,9 +938,179 @@ export default function AdminPage() {
           ) : (
             <p className="text-gray-500">No users yet</p>
           )}
-        </div>
+          </div>
+        </CollapsibleSection>
 
-        {/* Google Analytics */}
+        {/* ==================== MONITORING & HEALTH ==================== */}
+        <CollapsibleSection
+          id="monitoring"
+          title="Monitoring & Health"
+          icon="fas fa-heartbeat"
+          iconColor="text-green-400"
+          isCollapsed={collapsed.monitoring}
+          onToggle={() => toggle('monitoring')}
+          badge={
+            <div className="flex items-center gap-2">
+              {uptime?.configured && uptime.summary && (
+                <span className={`px-2 py-1 rounded-full text-xs ${uptime.summary.down > 0 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                  {uptime.summary.up}/{uptime.summary.total} Up
+                </span>
+              )}
+              {sentry?.configured && sentry.summary && sentry.summary.criticalIssues > 0 && (
+                <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
+                  {sentry.summary.criticalIssues} Critical
+                </span>
+              )}
+            </div>
+          }
+        >
+          {/* UptimeRobot */}
+          <div className="card p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                <i className="fas fa-signal text-green-400 mr-2" />
+                UptimeRobot
+              </h3>
+              <button onClick={fetchUptime} className="btn-secondary text-sm" disabled={uptimeLoading}>
+                <i className={`fas fa-sync-alt mr-2 ${uptimeLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+            {uptimeLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-400" />
+              </div>
+            ) : !uptime?.configured ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-yellow-400"><i className="fas fa-exclamation-triangle mr-2" />{uptime?.message || 'UptimeRobot not configured'}</p>
+                <p className="text-gray-400 text-sm mt-2">Add <code className="bg-dark-400 px-1 rounded">UPTIMEROBOT_API_KEY</code> to enable.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Monitors</p>
+                    <p className="text-2xl font-bold">{uptime.summary?.total || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Up</p>
+                    <p className="text-2xl font-bold text-green-400">{uptime.summary?.up || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Down</p>
+                    <p className="text-2xl font-bold text-red-400">{uptime.summary?.down || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Avg Response</p>
+                    <p className="text-2xl font-bold text-blue-400">{uptime.summary?.avgResponseTime || 0}<span className="text-sm">ms</span></p>
+                  </div>
+                </div>
+                {uptime.monitors && uptime.monitors.length > 0 && (
+                  <div className="space-y-2">
+                    {uptime.monitors.map((monitor) => (
+                      <div key={monitor.id} className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-3 h-3 rounded-full ${monitor.status === 'Up' ? 'bg-green-400' : monitor.status === 'Down' ? 'bg-red-400' : 'bg-gray-400'}`} />
+                          <span className="font-medium">{monitor.name}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="text-gray-400">{monitor.avgResponseTime || '-'}ms</span>
+                          <span className="text-gray-400">{monitor.uptime.month?.toFixed(1) || '-'}%</span>
+                          <span className={monitor.status === 'Up' ? 'text-green-400' : 'text-red-400'}>{monitor.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-3 mt-4">
+                  <a href="https://uptimerobot.com/dashboard" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                    <i className="fas fa-external-link-alt mr-2" />Dashboard
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Sentry */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                <i className="fas fa-bug text-purple-400 mr-2" />
+                Sentry
+              </h3>
+              <button onClick={fetchSentry} className="btn-secondary text-sm" disabled={sentryLoading}>
+                <i className={`fas fa-sync-alt mr-2 ${sentryLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+            {sentryLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-400" />
+              </div>
+            ) : !sentry?.configured ? (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-yellow-400"><i className="fas fa-exclamation-triangle mr-2" />{sentry?.message || 'Sentry not configured'}</p>
+                <p className="text-gray-400 text-sm mt-2">Add <code className="bg-dark-400 px-1 rounded">SENTRY_AUTH_TOKEN</code> and <code className="bg-dark-400 px-1 rounded">SENTRY_ORG</code> to enable.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Unresolved</p>
+                    <p className="text-2xl font-bold text-orange-400">{sentry.summary?.unresolvedIssues || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Critical</p>
+                    <p className="text-2xl font-bold text-red-400">{sentry.summary?.criticalIssues || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Errors (24h)</p>
+                    <p className="text-2xl font-bold text-yellow-400">{sentry.summary?.errors24h || 0}</p>
+                  </div>
+                  <div className="bg-dark-400/50 rounded-lg p-3 text-center">
+                    <p className="text-gray-400 text-xs mb-1">Users Affected</p>
+                    <p className="text-2xl font-bold text-blue-400">{sentry.summary?.uniqueUsers || 0}</p>
+                  </div>
+                </div>
+                {sentry.issues && sentry.issues.length > 0 && (
+                  <div className="space-y-2">
+                    {sentry.issues.slice(0, 4).map((issue) => (
+                      <a key={issue.id} href={issue.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-2 hover:bg-dark-400/50">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${issue.level === 'error' || issue.level === 'fatal' ? 'bg-red-400' : 'bg-yellow-400'}`} />
+                          <span className="text-sm truncate">{issue.title}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{issue.count} events</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-3 mt-4">
+                  <a href="https://sentry.io" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                    <i className="fas fa-external-link-alt mr-2" />Dashboard
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+        </CollapsibleSection>
+
+        {/* ==================== ANALYTICS ==================== */}
+        <CollapsibleSection
+          id="analytics"
+          title="Analytics"
+          icon="fas fa-chart-line"
+          iconColor="text-orange-400"
+          isCollapsed={collapsed.analytics}
+          onToggle={() => toggle('analytics')}
+          badge={analytics?.configured && analytics.realtime && (
+            <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block mr-1" />
+              {analytics.realtime.activeUsers} active
+            </span>
+          )}
+        >
+          {/* Google Analytics */}
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -1058,8 +1292,25 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+        </CollapsibleSection>
 
-        {/* Cloudflare */}
+        {/* ==================== INFRASTRUCTURE ==================== */}
+        <CollapsibleSection
+          id="infrastructure"
+          title="Infrastructure"
+          icon="fas fa-server"
+          iconColor="text-blue-400"
+          isCollapsed={collapsed.infrastructure}
+          onToggle={() => toggle('infrastructure')}
+          badge={
+            <div className="flex items-center gap-2">
+              {cloudflare?.configured && <span className="px-2 py-1 rounded-full text-xs bg-orange-500/20 text-orange-400">{cloudflare.summary?.totalZones || 0} zones</span>}
+              {vercel?.configured && <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{vercel.summary?.totalProjects || 0} projects</span>}
+              {neon?.configured && <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">{neon.summary?.totalProjects || 0} db</span>}
+            </div>
+          }
+        >
+          {/* Cloudflare */}
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -1802,8 +2053,24 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+        </CollapsibleSection>
 
-        {/* GitHub */}
+        {/* ==================== DEVELOPMENT ==================== */}
+        <CollapsibleSection
+          id="development"
+          title="Development"
+          icon="fab fa-github"
+          iconColor="text-white"
+          isCollapsed={collapsed.development}
+          onToggle={() => toggle('development')}
+          badge={github?.configured && github.summary && (
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{github.summary.totalRepos} repos</span>
+              {github.summary.openPRs > 0 && <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">{github.summary.openPRs} PRs</span>}
+            </div>
+          )}
+        >
+          {/* GitHub */}
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -2096,391 +2363,7 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
-
-        {/* UptimeRobot */}
-        <div className="card p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              <i className="fas fa-heartbeat text-green-400 mr-2" />
-              UptimeRobot
-            </h2>
-            <button
-              onClick={fetchUptime}
-              className="btn-secondary text-sm"
-              disabled={uptimeLoading}
-            >
-              <i className={`fas fa-sync-alt mr-2 ${uptimeLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
-
-          {uptimeLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-400" />
-            </div>
-          ) : !uptime?.configured ? (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
-              <p className="text-yellow-400">
-                <i className="fas fa-exclamation-triangle mr-2" />
-                {uptime?.message || uptime?.error || 'UptimeRobot not configured'}
-              </p>
-              <p className="text-gray-400 text-sm mt-2">
-                To enable UptimeRobot integration, add the following environment variable:
-              </p>
-              <ul className="text-gray-400 text-sm mt-2 space-y-1">
-                <li><code className="bg-dark-400 px-1 rounded">UPTIMEROBOT_API_KEY</code> - Your read-only or main API key from UptimeRobot</li>
-              </ul>
-            </div>
-          ) : (
-            <>
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Total Monitors</p>
-                  <p className="text-3xl font-bold text-white">
-                    {uptime.summary?.total || 0}
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Up</p>
-                  <p className="text-3xl font-bold text-green-400">
-                    {uptime.summary?.up || 0}
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Down</p>
-                  <p className="text-3xl font-bold text-red-400">
-                    {uptime.summary?.down || 0}
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Avg Response</p>
-                  <p className="text-3xl font-bold text-blue-400">
-                    {uptime.summary?.avgResponseTime || 0}<span className="text-sm">ms</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* SSL Warnings */}
-              {uptime.sslWarnings && uptime.sslWarnings.length > 0 && (
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
-                  <p className="text-yellow-400 font-semibold mb-2">
-                    <i className="fas fa-shield-alt mr-2" />
-                    SSL Certificate Warnings
-                  </p>
-                  <div className="space-y-1">
-                    {uptime.sslWarnings.map((warning, i) => (
-                      <p key={i} className="text-sm text-gray-300">
-                        <strong>{warning.name}</strong>: expires in {warning.daysUntilExpiry} days
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Monitors */}
-              {uptime.monitors && uptime.monitors.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Monitors</h3>
-                  <div className="space-y-2">
-                    {uptime.monitors.map((monitor) => (
-                      <div key={monitor.id} className="bg-dark-400/30 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-3 h-3 rounded-full ${getUptimeStatusColor(monitor.status)}`} />
-                            <span className="font-medium">{monitor.name}</span>
-                            <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
-                              {monitor.type}
-                            </span>
-                          </div>
-                          <span className={`text-sm font-medium ${getUptimeStatusTextColor(monitor.status)}`}>
-                            {monitor.status}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-500">Response Time</p>
-                            <p className="font-medium">{monitor.avgResponseTime || '-'}ms</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">24h Uptime</p>
-                            <p className="font-medium">{monitor.uptime.day?.toFixed(2) || '-'}%</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">7d Uptime</p>
-                            <p className="font-medium">{monitor.uptime.week?.toFixed(2) || '-'}%</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">30d Uptime</p>
-                            <p className="font-medium">{monitor.uptime.month?.toFixed(2) || '-'}%</p>
-                          </div>
-                        </div>
-                        {monitor.ssl && (
-                          <div className="mt-2 text-xs text-gray-500">
-                            <i className="fas fa-lock mr-1" />
-                            SSL: {monitor.ssl.brand} - expires in {monitor.ssl.daysUntilExpiry} days
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Uptime Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-dark-400/50 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm mb-1">30-Day Average Uptime</p>
-                  <p className="text-2xl font-bold text-green-400">
-                    {uptime.summary?.avgUptime30d || '0'}%
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm mb-1">Paused Monitors</p>
-                  <p className="text-2xl font-bold text-gray-400">
-                    {uptime.summary?.paused || 0}
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Links */}
-          <div className="border-t border-dark-100/50 pt-4 mt-4">
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-              {uptime?.account?.email && (
-                <div>
-                  <span className="text-gray-400 text-sm">Account: </span>
-                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
-                    {uptime.account.email}
-                  </code>
-                </div>
-              )}
-              {uptime?.configured && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-                  <i className="fas fa-check-circle mr-1" />
-                  Connected
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="https://uptimerobot.com/dashboard"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm"
-              >
-                <i className="fas fa-external-link-alt mr-2" />
-                UptimeRobot Dashboard
-              </a>
-              <a
-                href="https://stats.uptimerobot.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm"
-              >
-                <i className="fas fa-chart-line mr-2" />
-                Public Status Page
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Sentry */}
-        <div className="card p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              <i className="fas fa-bug text-purple-400 mr-2" />
-              Sentry
-            </h2>
-            <button
-              onClick={fetchSentry}
-              className="btn-secondary text-sm"
-              disabled={sentryLoading}
-            >
-              <i className={`fas fa-sync-alt mr-2 ${sentryLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
-
-          {sentryLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-400" />
-            </div>
-          ) : !sentry?.configured ? (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
-              <p className="text-yellow-400">
-                <i className="fas fa-exclamation-triangle mr-2" />
-                {sentry?.message || sentry?.error || 'Sentry not configured'}
-              </p>
-              <p className="text-gray-400 text-sm mt-2">
-                To enable Sentry integration, add the following environment variables:
-              </p>
-              <ul className="text-gray-400 text-sm mt-2 space-y-1">
-                <li><code className="bg-dark-400 px-1 rounded">SENTRY_AUTH_TOKEN</code> - Auth token with project:read and event:read scopes</li>
-                <li><code className="bg-dark-400 px-1 rounded">SENTRY_ORG</code> - Your organization slug</li>
-                <li><code className="bg-dark-400 px-1 rounded">SENTRY_PROJECT</code> - (Optional) Specific project slug to monitor</li>
-              </ul>
-            </div>
-          ) : (
-            <>
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Unresolved Issues</p>
-                  <p className="text-3xl font-bold text-orange-400">
-                    {sentry.summary?.unresolvedIssues || 0}
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Critical Issues</p>
-                  <p className="text-3xl font-bold text-red-400">
-                    {sentry.summary?.criticalIssues || 0}
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Errors (24h)</p>
-                  <p className="text-3xl font-bold text-yellow-400">
-                    {sentry.summary?.errors24h || 0}
-                  </p>
-                </div>
-                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
-                  <p className="text-gray-400 text-sm mb-2">Users Affected</p>
-                  <p className="text-3xl font-bold text-blue-400">
-                    {sentry.summary?.uniqueUsers || 0}
-                  </p>
-                </div>
-              </div>
-
-              {/* Error Trend Chart */}
-              {sentry.errorTrend && sentry.errorTrend.values.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Errors (24h)</h3>
-                  <div className="flex items-end justify-between h-16 gap-0.5">
-                    {sentry.errorTrend.values.map((value, i) => {
-                      const maxValue = Math.max(...sentry.errorTrend!.values, 1)
-                      const height = (value / maxValue) * 100
-                      return (
-                        <div
-                          key={i}
-                          className="flex-1 bg-purple-400/60 hover:bg-purple-400 transition-colors rounded-t"
-                          style={{ height: `${Math.max(height, 2)}%` }}
-                          title={`${value} errors`}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Issues */}
-              {sentry.issues && sentry.issues.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Issues</h3>
-                  <div className="space-y-2">
-                    {sentry.issues.slice(0, 6).map((issue) => (
-                      <a
-                        key={issue.id}
-                        href={issue.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block bg-dark-400/30 rounded-lg p-3 hover:bg-dark-400/50"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className={`w-2 h-2 rounded-full ${getSentryLevelColor(issue.level)}`} />
-                            <span className="text-sm font-medium truncate">{issue.title}</span>
-                            {issue.isUnhandled && (
-                              <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">unhandled</span>
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            {issue.count} events
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span>{issue.project}</span>
-                          {issue.culprit && <span className="truncate">{issue.culprit}</span>}
-                          <span>{formatRelativeTime(new Date(issue.lastSeen).getTime())}</span>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Projects */}
-              {sentry.projects && sentry.projects.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Projects</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {sentry.projects.map((project) => (
-                      <div key={project.id} className="bg-dark-400/30 rounded px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{project.name}</span>
-                          {project.platform && (
-                            <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
-                              {project.platform}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Links */}
-          <div className="border-t border-dark-100/50 pt-4 mt-4">
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-              {sentry?.organization && (
-                <div>
-                  <span className="text-gray-400 text-sm">Organization: </span>
-                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
-                    {sentry.organization}
-                  </code>
-                </div>
-              )}
-              {sentry?.configured && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-                  <i className="fas fa-check-circle mr-1" />
-                  {sentry.summary?.totalProjects || 0} Projects
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="https://sentry.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm"
-              >
-                <i className="fas fa-external-link-alt mr-2" />
-                Sentry Dashboard
-              </a>
-              <a
-                href="https://sentry.io/issues/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm"
-              >
-                <i className="fas fa-bug mr-2" />
-                All Issues
-              </a>
-              <a
-                href="https://sentry.io/performance/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm"
-              >
-                <i className="fas fa-tachometer-alt mr-2" />
-                Performance
-              </a>
-            </div>
-          </div>
-        </div>
+        </CollapsibleSection>
 
         {/* Quick Actions */}
         <div className="card p-6">
