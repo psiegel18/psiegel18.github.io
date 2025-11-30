@@ -302,6 +302,112 @@ type GitHubData = {
   }>
 }
 
+type UptimeRobotData = {
+  configured: boolean
+  message?: string
+  error?: string
+  account?: {
+    email: string
+    monitorLimit: number
+    monitorInterval: number
+  }
+  summary?: {
+    total: number
+    up: number
+    down: number
+    paused: number
+    avgResponseTime: number
+    avgUptime30d: string
+    sslWarnings: number
+  }
+  monitors?: Array<{
+    id: number
+    name: string
+    url: string
+    type: string
+    status: string
+    statusColor: string
+    createdAt: string
+    avgResponseTime: number | null
+    uptime: {
+      day: number | null
+      week: number | null
+      month: number | null
+      quarter: number | null
+    }
+    ssl: {
+      brand: string
+      product: string
+      expiresAt: string
+      daysUntilExpiry: number
+    } | null
+    recentLogs: Array<{
+      type: string
+      datetime: string
+      duration: number
+      reason?: { code: string; detail: string }
+    }>
+    responseTimes: Array<{
+      datetime: string
+      value: number
+    }>
+  }>
+  sslWarnings?: Array<{
+    name: string
+    daysUntilExpiry: number
+  }>
+}
+
+type SentryData = {
+  configured: boolean
+  message?: string
+  error?: string
+  organization?: string
+  projects?: Array<{
+    id: string
+    slug: string
+    name: string
+    platform: string
+    status: string
+  }>
+  summary?: {
+    totalProjects: number
+    unresolvedIssues: number
+    criticalIssues: number
+    unhandledErrors: number
+    totalEvents: number
+    uniqueUsers: number
+    errors24h: number
+    transactions24h: number
+  }
+  errorTrend?: {
+    intervals: string[]
+    values: number[]
+  }
+  issues?: Array<{
+    id: string
+    shortId: string
+    title: string
+    culprit: string
+    url: string
+    level: string
+    levelColor: string
+    status: string
+    statusColor: string
+    isUnhandled: boolean
+    count: number
+    userCount: number
+    firstSeen: string
+    lastSeen: string
+    project: string
+    projectSlug: string
+    errorType?: string
+    errorValue?: string
+    filename?: string
+    function?: string
+  }>
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -316,6 +422,10 @@ export default function AdminPage() {
   const [neonLoading, setNeonLoading] = useState(true)
   const [github, setGithub] = useState<GitHubData | null>(null)
   const [githubLoading, setGithubLoading] = useState(true)
+  const [uptime, setUptime] = useState<UptimeRobotData | null>(null)
+  const [uptimeLoading, setUptimeLoading] = useState(true)
+  const [sentry, setSentry] = useState<SentryData | null>(null)
+  const [sentryLoading, setSentryLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -332,6 +442,8 @@ export default function AdminPage() {
     fetchVercel()
     fetchNeon()
     fetchGithub()
+    fetchUptime()
+    fetchSentry()
   }, [session, status, router])
 
   const fetchStats = async () => {
@@ -414,6 +526,34 @@ export default function AdminPage() {
       setGithub({ configured: false, error: 'Failed to fetch GitHub data' })
     } finally {
       setGithubLoading(false)
+    }
+  }
+
+  const fetchUptime = async () => {
+    setUptimeLoading(true)
+    try {
+      const response = await fetch('/api/admin/uptimerobot')
+      const data = await response.json()
+      setUptime(data)
+    } catch (error) {
+      console.error('Failed to fetch UptimeRobot data:', error)
+      setUptime({ configured: false, error: 'Failed to fetch UptimeRobot data' })
+    } finally {
+      setUptimeLoading(false)
+    }
+  }
+
+  const fetchSentry = async () => {
+    setSentryLoading(true)
+    try {
+      const response = await fetch('/api/admin/sentry')
+      const data = await response.json()
+      setSentry(data)
+    } catch (error) {
+      console.error('Failed to fetch Sentry data:', error)
+      setSentry({ configured: false, error: 'Failed to fetch Sentry data' })
+    } finally {
+      setSentryLoading(false)
     }
   }
 
@@ -542,6 +682,36 @@ export default function AdminPage() {
     if (seconds < 60) return `${seconds}s`
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
     return `${(seconds / 3600).toFixed(1)}h`
+  }
+
+  const getUptimeStatusColor = (status: string) => {
+    switch (status) {
+      case 'Up': return 'bg-green-400'
+      case 'Down': return 'bg-red-400'
+      case 'Seems Down': return 'bg-yellow-400'
+      case 'Paused': return 'bg-gray-400'
+      default: return 'bg-gray-400'
+    }
+  }
+
+  const getUptimeStatusTextColor = (status: string) => {
+    switch (status) {
+      case 'Up': return 'text-green-400'
+      case 'Down': return 'text-red-400'
+      case 'Seems Down': return 'text-yellow-400'
+      case 'Paused': return 'text-gray-400'
+      default: return 'text-gray-400'
+    }
+  }
+
+  const getSentryLevelColor = (level: string) => {
+    switch (level) {
+      case 'fatal': return 'bg-red-500'
+      case 'error': return 'bg-red-400'
+      case 'warning': return 'bg-yellow-400'
+      case 'info': return 'bg-blue-400'
+      default: return 'bg-gray-400'
+    }
   }
 
   if (status === 'loading' || loading) {
@@ -1922,6 +2092,391 @@ export default function AdminPage() {
               >
                 <i className="fas fa-bell mr-2" />
                 Notifications
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* UptimeRobot */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              <i className="fas fa-heartbeat text-green-400 mr-2" />
+              UptimeRobot
+            </h2>
+            <button
+              onClick={fetchUptime}
+              className="btn-secondary text-sm"
+              disabled={uptimeLoading}
+            >
+              <i className={`fas fa-sync-alt mr-2 ${uptimeLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {uptimeLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-400" />
+            </div>
+          ) : !uptime?.configured ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-yellow-400">
+                <i className="fas fa-exclamation-triangle mr-2" />
+                {uptime?.message || uptime?.error || 'UptimeRobot not configured'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                To enable UptimeRobot integration, add the following environment variable:
+              </p>
+              <ul className="text-gray-400 text-sm mt-2 space-y-1">
+                <li><code className="bg-dark-400 px-1 rounded">UPTIMEROBOT_API_KEY</code> - Your read-only or main API key from UptimeRobot</li>
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Total Monitors</p>
+                  <p className="text-3xl font-bold text-white">
+                    {uptime.summary?.total || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Up</p>
+                  <p className="text-3xl font-bold text-green-400">
+                    {uptime.summary?.up || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Down</p>
+                  <p className="text-3xl font-bold text-red-400">
+                    {uptime.summary?.down || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Avg Response</p>
+                  <p className="text-3xl font-bold text-blue-400">
+                    {uptime.summary?.avgResponseTime || 0}<span className="text-sm">ms</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* SSL Warnings */}
+              {uptime.sslWarnings && uptime.sslWarnings.length > 0 && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                  <p className="text-yellow-400 font-semibold mb-2">
+                    <i className="fas fa-shield-alt mr-2" />
+                    SSL Certificate Warnings
+                  </p>
+                  <div className="space-y-1">
+                    {uptime.sslWarnings.map((warning, i) => (
+                      <p key={i} className="text-sm text-gray-300">
+                        <strong>{warning.name}</strong>: expires in {warning.daysUntilExpiry} days
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Monitors */}
+              {uptime.monitors && uptime.monitors.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Monitors</h3>
+                  <div className="space-y-2">
+                    {uptime.monitors.map((monitor) => (
+                      <div key={monitor.id} className="bg-dark-400/30 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-3 h-3 rounded-full ${getUptimeStatusColor(monitor.status)}`} />
+                            <span className="font-medium">{monitor.name}</span>
+                            <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                              {monitor.type}
+                            </span>
+                          </div>
+                          <span className={`text-sm font-medium ${getUptimeStatusTextColor(monitor.status)}`}>
+                            {monitor.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-500">Response Time</p>
+                            <p className="font-medium">{monitor.avgResponseTime || '-'}ms</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">24h Uptime</p>
+                            <p className="font-medium">{monitor.uptime.day?.toFixed(2) || '-'}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">7d Uptime</p>
+                            <p className="font-medium">{monitor.uptime.week?.toFixed(2) || '-'}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">30d Uptime</p>
+                            <p className="font-medium">{monitor.uptime.month?.toFixed(2) || '-'}%</p>
+                          </div>
+                        </div>
+                        {monitor.ssl && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            <i className="fas fa-lock mr-1" />
+                            SSL: {monitor.ssl.brand} - expires in {monitor.ssl.daysUntilExpiry} days
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Uptime Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">30-Day Average Uptime</p>
+                  <p className="text-2xl font-bold text-green-400">
+                    {uptime.summary?.avgUptime30d || '0'}%
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">Paused Monitors</p>
+                  <p className="text-2xl font-bold text-gray-400">
+                    {uptime.summary?.paused || 0}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Links */}
+          <div className="border-t border-dark-100/50 pt-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {uptime?.account?.email && (
+                <div>
+                  <span className="text-gray-400 text-sm">Account: </span>
+                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
+                    {uptime.account.email}
+                  </code>
+                </div>
+              )}
+              {uptime?.configured && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                  <i className="fas fa-check-circle mr-1" />
+                  Connected
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://uptimerobot.com/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-external-link-alt mr-2" />
+                UptimeRobot Dashboard
+              </a>
+              <a
+                href="https://stats.uptimerobot.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-chart-line mr-2" />
+                Public Status Page
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Sentry */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              <i className="fas fa-bug text-purple-400 mr-2" />
+              Sentry
+            </h2>
+            <button
+              onClick={fetchSentry}
+              className="btn-secondary text-sm"
+              disabled={sentryLoading}
+            >
+              <i className={`fas fa-sync-alt mr-2 ${sentryLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {sentryLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-400" />
+            </div>
+          ) : !sentry?.configured ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-yellow-400">
+                <i className="fas fa-exclamation-triangle mr-2" />
+                {sentry?.message || sentry?.error || 'Sentry not configured'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                To enable Sentry integration, add the following environment variables:
+              </p>
+              <ul className="text-gray-400 text-sm mt-2 space-y-1">
+                <li><code className="bg-dark-400 px-1 rounded">SENTRY_AUTH_TOKEN</code> - Auth token with project:read and event:read scopes</li>
+                <li><code className="bg-dark-400 px-1 rounded">SENTRY_ORG</code> - Your organization slug</li>
+                <li><code className="bg-dark-400 px-1 rounded">SENTRY_PROJECT</code> - (Optional) Specific project slug to monitor</li>
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Unresolved Issues</p>
+                  <p className="text-3xl font-bold text-orange-400">
+                    {sentry.summary?.unresolvedIssues || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Critical Issues</p>
+                  <p className="text-3xl font-bold text-red-400">
+                    {sentry.summary?.criticalIssues || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Errors (24h)</p>
+                  <p className="text-3xl font-bold text-yellow-400">
+                    {sentry.summary?.errors24h || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Users Affected</p>
+                  <p className="text-3xl font-bold text-blue-400">
+                    {sentry.summary?.uniqueUsers || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* Error Trend Chart */}
+              {sentry.errorTrend && sentry.errorTrend.values.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Errors (24h)</h3>
+                  <div className="flex items-end justify-between h-16 gap-0.5">
+                    {sentry.errorTrend.values.map((value, i) => {
+                      const maxValue = Math.max(...sentry.errorTrend!.values, 1)
+                      const height = (value / maxValue) * 100
+                      return (
+                        <div
+                          key={i}
+                          className="flex-1 bg-purple-400/60 hover:bg-purple-400 transition-colors rounded-t"
+                          style={{ height: `${Math.max(height, 2)}%` }}
+                          title={`${value} errors`}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Issues */}
+              {sentry.issues && sentry.issues.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Issues</h3>
+                  <div className="space-y-2">
+                    {sentry.issues.slice(0, 6).map((issue) => (
+                      <a
+                        key={issue.id}
+                        href={issue.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block bg-dark-400/30 rounded-lg p-3 hover:bg-dark-400/50"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className={`w-2 h-2 rounded-full ${getSentryLevelColor(issue.level)}`} />
+                            <span className="text-sm font-medium truncate">{issue.title}</span>
+                            {issue.isUnhandled && (
+                              <span className="text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">unhandled</span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            {issue.count} events
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <span>{issue.project}</span>
+                          {issue.culprit && <span className="truncate">{issue.culprit}</span>}
+                          <span>{formatRelativeTime(new Date(issue.lastSeen).getTime())}</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Projects */}
+              {sentry.projects && sentry.projects.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Projects</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {sentry.projects.map((project) => (
+                      <div key={project.id} className="bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{project.name}</span>
+                          {project.platform && (
+                            <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                              {project.platform}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Links */}
+          <div className="border-t border-dark-100/50 pt-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {sentry?.organization && (
+                <div>
+                  <span className="text-gray-400 text-sm">Organization: </span>
+                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
+                    {sentry.organization}
+                  </code>
+                </div>
+              )}
+              {sentry?.configured && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                  <i className="fas fa-check-circle mr-1" />
+                  {sentry.summary?.totalProjects || 0} Projects
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://sentry.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-external-link-alt mr-2" />
+                Sentry Dashboard
+              </a>
+              <a
+                href="https://sentry.io/issues/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-bug mr-2" />
+                All Issues
+              </a>
+              <a
+                href="https://sentry.io/performance/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-tachometer-alt mr-2" />
+                Performance
               </a>
             </div>
           </div>
