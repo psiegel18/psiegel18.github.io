@@ -209,26 +209,19 @@ export async function GET() {
     // Build list of configured projects
     const projects: ProjectConfig[] = []
 
-    // Check for multi-project setup
-    if (process.env.NEON_WEB_PROJECT_ID) {
+    // Primary project (required)
+    if (process.env.NEON_PROJECT_ID) {
       projects.push({
         name: 'Web',
-        projectId: process.env.NEON_WEB_PROJECT_ID,
+        projectId: process.env.NEON_PROJECT_ID,
       })
     }
 
+    // Additional project (optional)
     if (process.env.NEON_ZERO_PROJECT_ID) {
       projects.push({
         name: 'Zero',
         projectId: process.env.NEON_ZERO_PROJECT_ID,
-      })
-    }
-
-    // Fallback to single project
-    if (projects.length === 0 && process.env.NEON_PROJECT_ID) {
-      projects.push({
-        name: 'Default',
-        projectId: process.env.NEON_PROJECT_ID,
       })
     }
 
@@ -257,7 +250,7 @@ export async function GET() {
     if (projects.length === 0) {
       return NextResponse.json({
         configured: false,
-        message: 'No Neon projects found. Add NEON_WEB_PROJECT_ID or NEON_ZERO_PROJECT_ID.',
+        message: 'No Neon projects found. Add NEON_PROJECT_ID environment variable.',
       })
     }
 

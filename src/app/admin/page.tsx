@@ -217,6 +217,91 @@ type NeonData = {
   }>
 }
 
+type GitHubData = {
+  configured: boolean
+  message?: string
+  error?: string
+  user?: {
+    login: string
+    name: string
+    email: string
+    avatarUrl: string
+    followers: number
+    following: number
+  }
+  summary?: {
+    totalRepos: number
+    publicRepos: number
+    privateRepos: number
+    totalStars: number
+    totalForks: number
+    openIssues: number
+    openPRs: number
+    languages: string[]
+  }
+  repos?: Array<{
+    id: number
+    name: string
+    fullName: string
+    private: boolean
+    url: string
+    description: string | null
+    fork: boolean
+    language: string | null
+    stars: number
+    forks: number
+    openIssues: number
+    defaultBranch: string
+    pushedAt: string
+    updatedAt: string
+  }>
+  events?: Array<{
+    id: string
+    type: string
+    repo: string
+    createdAt: string
+    action?: string
+    ref?: string
+    refType?: string
+    commits?: Array<{ sha: string; message: string }>
+    pullRequest?: { title: string; number: number }
+    issue?: { title: string; number: number }
+  }>
+  issues?: Array<{
+    id: number
+    title: string
+    number: number
+    state: string
+    url: string
+    repo: string
+    createdAt: string
+    updatedAt: string
+    labels: Array<{ name: string; color: string }>
+  }>
+  pullRequests?: Array<{
+    id: number
+    title: string
+    number: number
+    state: string
+    url: string
+    repo: string
+    createdAt: string
+    updatedAt: string
+    draft: boolean
+  }>
+  workflowRuns?: Array<{
+    id: number
+    name: string
+    status: string
+    conclusion: string | null
+    repo: string
+    branch: string
+    event: string
+    createdAt: string
+    url: string
+  }>
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -229,6 +314,8 @@ export default function AdminPage() {
   const [vercelLoading, setVercelLoading] = useState(true)
   const [neon, setNeon] = useState<NeonData | null>(null)
   const [neonLoading, setNeonLoading] = useState(true)
+  const [github, setGithub] = useState<GitHubData | null>(null)
+  const [githubLoading, setGithubLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -244,6 +331,7 @@ export default function AdminPage() {
     fetchCloudflare()
     fetchVercel()
     fetchNeon()
+    fetchGithub()
   }, [session, status, router])
 
   const fetchStats = async () => {
@@ -312,6 +400,20 @@ export default function AdminPage() {
       setNeon({ configured: false, error: 'Failed to fetch Neon data' })
     } finally {
       setNeonLoading(false)
+    }
+  }
+
+  const fetchGithub = async () => {
+    setGithubLoading(true)
+    try {
+      const response = await fetch('/api/admin/github')
+      const data = await response.json()
+      setGithub(data)
+    } catch (error) {
+      console.error('Failed to fetch GitHub data:', error)
+      setGithub({ configured: false, error: 'Failed to fetch GitHub data' })
+    } finally {
+      setGithubLoading(false)
     }
   }
 
@@ -402,6 +504,38 @@ export default function AdminPage() {
       case 'Zero': return 'bg-cyan-500/20 text-cyan-400'
       default: return 'bg-gray-500/20 text-gray-400'
     }
+  }
+
+  const getWorkflowStatusColor = (status: string, conclusion: string | null) => {
+    if (status === 'completed') {
+      switch (conclusion) {
+        case 'success': return 'bg-green-400'
+        case 'failure': return 'bg-red-400'
+        case 'cancelled': return 'bg-gray-400'
+        case 'skipped': return 'bg-gray-400'
+        default: return 'bg-yellow-400'
+      }
+    }
+    if (status === 'in_progress') return 'bg-yellow-400 animate-pulse'
+    if (status === 'queued') return 'bg-blue-400'
+    return 'bg-gray-400'
+  }
+
+  const formatEventType = (type: string) => {
+    const eventMap: Record<string, string> = {
+      'PushEvent': 'pushed to',
+      'PullRequestEvent': 'PR',
+      'IssuesEvent': 'issue',
+      'CreateEvent': 'created',
+      'DeleteEvent': 'deleted',
+      'WatchEvent': 'starred',
+      'ForkEvent': 'forked',
+      'IssueCommentEvent': 'commented on',
+      'PullRequestReviewEvent': 'reviewed',
+      'PullRequestReviewCommentEvent': 'commented on PR',
+      'ReleaseEvent': 'released',
+    }
+    return eventMap[type] || type.replace('Event', '')
   }
 
   const formatComputeTime = (seconds: number) => {
@@ -1494,6 +1628,300 @@ export default function AdminPage() {
               >
                 <i className="fas fa-book mr-2" />
                 Documentation
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* GitHub */}
+        <div className="card p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              <i className="fab fa-github text-white mr-2" />
+              GitHub
+            </h2>
+            <button
+              onClick={fetchGithub}
+              className="btn-secondary text-sm"
+              disabled={githubLoading}
+            >
+              <i className={`fas fa-sync-alt mr-2 ${githubLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
+          {githubLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white" />
+            </div>
+          ) : !github?.configured ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+              <p className="text-yellow-400">
+                <i className="fas fa-exclamation-triangle mr-2" />
+                {github?.message || github?.error || 'GitHub API not configured'}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                To enable GitHub integration, add the following environment variables:
+              </p>
+              <ul className="text-gray-400 text-sm mt-2 space-y-1">
+                <li><code className="bg-dark-400 px-1 rounded">GITHUB_ACCESS_TOKEN</code> - Personal access token with repo, read:org, read:user, workflow scopes</li>
+                <li><code className="bg-dark-400 px-1 rounded">GITHUB_USERNAME</code> - (Optional) Your GitHub username</li>
+              </ul>
+            </div>
+          ) : (
+            <>
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Repositories</p>
+                  <p className="text-3xl font-bold text-white">
+                    {github.summary?.totalRepos || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {github.summary?.publicRepos || 0} public / {github.summary?.privateRepos || 0} private
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Total Stars</p>
+                  <p className="text-3xl font-bold text-yellow-400">
+                    {github.summary?.totalStars || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Open Issues</p>
+                  <p className="text-3xl font-bold text-orange-400">
+                    {github.summary?.openIssues || 0}
+                  </p>
+                </div>
+                <div className="bg-dark-400/50 rounded-lg p-4 text-center">
+                  <p className="text-gray-400 text-sm mb-2">Open PRs</p>
+                  <p className="text-3xl font-bold text-purple-400">
+                    {github.summary?.openPRs || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recent Repositories */}
+              {github.repos && github.repos.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Repositories</h3>
+                  <div className="space-y-2">
+                    {github.repos.slice(0, 6).map((repo) => (
+                      <div key={repo.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <i className={`fas ${repo.private ? 'fa-lock text-yellow-400' : 'fa-book text-gray-400'} text-xs`} />
+                          <a
+                            href={repo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium hover:text-primary-400 truncate"
+                          >
+                            {repo.name}
+                          </a>
+                          {repo.language && (
+                            <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                              {repo.language}
+                            </span>
+                          )}
+                          {repo.fork && (
+                            <span className="text-xs text-gray-500">
+                              <i className="fas fa-code-branch mr-1" />
+                              fork
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          {repo.stars > 0 && (
+                            <span><i className="fas fa-star text-yellow-400 mr-1" />{repo.stars}</span>
+                          )}
+                          <span>{formatRelativeTime(new Date(repo.pushedAt).getTime())}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Activity & Workflow Runs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Recent Activity */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Activity</h3>
+                  <div className="space-y-2">
+                    {github.events?.slice(0, 6).map((event) => (
+                      <div key={event.id} className="bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-gray-400">{formatEventType(event.type)}</span>
+                          <span className="font-medium truncate">{event.repo.split('/')[1]}</span>
+                        </div>
+                        {event.commits && event.commits.length > 0 && (
+                          <p className="text-xs text-gray-500 truncate mt-1">
+                            {event.commits[0].message}
+                          </p>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {formatRelativeTime(new Date(event.createdAt).getTime())}
+                        </span>
+                      </div>
+                    ))}
+                    {(!github.events || github.events.length === 0) && (
+                      <p className="text-gray-500 text-sm">No recent activity</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Workflow Runs */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Workflow Runs</h3>
+                  <div className="space-y-2">
+                    {github.workflowRuns?.slice(0, 6).map((run) => (
+                      <div key={run.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${getWorkflowStatusColor(run.status, run.conclusion)}`} />
+                          <span className="text-sm truncate">{run.name}</span>
+                          <span className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                            {run.repo}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {formatRelativeTime(new Date(run.createdAt).getTime())}
+                        </span>
+                      </div>
+                    ))}
+                    {(!github.workflowRuns || github.workflowRuns.length === 0) && (
+                      <p className="text-gray-500 text-sm">No workflow runs found</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Open Issues & PRs */}
+              {((github.issues && github.issues.length > 0) || (github.pullRequests && github.pullRequests.length > 0)) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Open Issues */}
+                  {github.issues && github.issues.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-400 mb-3">Assigned Issues</h3>
+                      <div className="space-y-2">
+                        {github.issues.slice(0, 4).map((issue) => (
+                          <a
+                            key={issue.id}
+                            href={issue.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block bg-dark-400/30 rounded px-3 py-2 hover:bg-dark-400/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <i className="fas fa-dot-circle text-green-400 text-xs" />
+                              <span className="text-sm truncate">{issue.title}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {issue.repo?.split('/')[1]} #{issue.number}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Open PRs */}
+                  {github.pullRequests && github.pullRequests.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-400 mb-3">Your Pull Requests</h3>
+                      <div className="space-y-2">
+                        {github.pullRequests.slice(0, 4).map((pr) => (
+                          <a
+                            key={pr.id}
+                            href={pr.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block bg-dark-400/30 rounded px-3 py-2 hover:bg-dark-400/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <i className="fas fa-code-pull-request text-purple-400 text-xs" />
+                              <span className="text-sm truncate">{pr.title}</span>
+                              {pr.draft && (
+                                <span className="text-xs bg-gray-500/20 text-gray-400 px-1.5 py-0.5 rounded">draft</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {pr.repo?.split('/')[1]} #{pr.number}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Links */}
+          <div className="border-t border-dark-100/50 pt-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              {github?.user?.login && (
+                <div className="flex items-center gap-2">
+                  {github.user.avatarUrl && (
+                    <img src={github.user.avatarUrl} alt="" className="w-6 h-6 rounded-full" />
+                  )}
+                  <code className="bg-dark-400 px-2 py-1 rounded text-primary-400 text-sm">
+                    @{github.user.login}
+                  </code>
+                </div>
+              )}
+              {github?.summary?.languages && github.summary.languages.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {github.summary.languages.slice(0, 4).map((lang) => (
+                    <span key={lang} className="text-xs bg-dark-400 px-1.5 py-0.5 rounded text-gray-400">
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {github?.configured && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                  <i className="fas fa-check-circle mr-1" />
+                  Connected
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fab fa-github mr-2" />
+                GitHub
+              </a>
+              <a
+                href="https://github.com/pulls"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-code-pull-request mr-2" />
+                Pull Requests
+              </a>
+              <a
+                href="https://github.com/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-circle-dot mr-2" />
+                Issues
+              </a>
+              <a
+                href="https://github.com/notifications"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                <i className="fas fa-bell mr-2" />
+                Notifications
               </a>
             </div>
           </div>
