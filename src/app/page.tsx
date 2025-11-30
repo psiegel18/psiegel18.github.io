@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { AutoGuestLogin } from '@/components/AutoGuestLogin'
 
 const features = [
@@ -55,6 +56,16 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center">
+            <div className="flex justify-center mb-6">
+              <Image
+                src="/psiegel_frog.png"
+                alt="Psiegel Logo"
+                width={120}
+                height={120}
+                className="rounded-2xl"
+                priority
+              />
+            </div>
             <h1 className="text-5xl sm:text-6xl font-bold mb-6">
               Welcome to{' '}
               <span className="text-gradient">Psiegel.org</span>

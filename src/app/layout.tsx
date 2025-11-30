@@ -27,8 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/psiegel_frog.ico" sizes="any" />
-        <link rel="icon" href="/psiegel_frog.svg" type="image/svg+xml" />
+        <link rel="icon" href="/psiegel_frog.ico" type="image/x-icon" />
+        <link rel="icon" href="/psiegel_frog_ico.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/psiegel_frog.ico" type="image/x-icon" />
         <link rel="apple-touch-icon" href="/psiegel_frog.png" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
