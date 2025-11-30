@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 
+export const dynamic = 'force-dynamic'
+
 const GA_PROPERTY_ID = '514665322'
 
 export async function GET() {
