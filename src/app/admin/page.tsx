@@ -170,22 +170,12 @@ type NeonData = {
     activeEndpoints: number
     totalStorageBytes: number
   }
-  currentProject?: {
-    id: string
-    name: string
-    region: string
-    pgVersion: number
-    activeTimeSeconds: number
-    cpuUsedSeconds: number
-    computeLastActiveAt: string
-  } | null
   projects?: Array<{
     id: string
     name: string
+    displayName: string
     region: string
     pgVersion: number
-    createdAt: string
-    updatedAt: string
     activeTimeSeconds: number
     cpuUsedSeconds: number
     computeLastActiveAt: string
@@ -197,12 +187,14 @@ type NeonData = {
     createdAt: string
     currentState: string
     logicalSize: number
+    projectName: string
   }>
   databases?: Array<{
     id: number
     name: string
     ownerName: string
     branchId: string
+    projectName: string
   }>
   endpoints?: Array<{
     id: string
@@ -213,6 +205,7 @@ type NeonData = {
     poolerEnabled: boolean
     createdAt: string
     lastActiveAt?: string
+    projectName: string
   }>
   operations?: Array<{
     id: string
@@ -220,6 +213,7 @@ type NeonData = {
     status: string
     createdAt: string
     updatedAt: string
+    projectName: string
   }>
 }
 
@@ -399,6 +393,14 @@ export default function AdminPage() {
       case 'idle': return 'bg-yellow-400'
       case 'init': return 'bg-blue-400 animate-pulse'
       default: return 'bg-gray-400'
+    }
+  }
+
+  const getNeonProjectBadgeColor = (projectName: string) => {
+    switch (projectName) {
+      case 'Web': return 'bg-green-500/20 text-green-400'
+      case 'Zero': return 'bg-cyan-500/20 text-cyan-400'
+      default: return 'bg-gray-500/20 text-gray-400'
     }
   }
 
@@ -1292,36 +1294,48 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Current Project Info */}
-              {neon.currentProject && (
-                <div className="bg-dark-400/50 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-400">Current Project</h3>
-                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-                      PostgreSQL {neon.currentProject.pgVersion}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Name</p>
-                      <p className="text-sm font-medium">{neon.currentProject.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Region</p>
-                      <p className="text-sm font-medium">{neon.currentProject.region}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Compute Time</p>
-                      <p className="text-sm font-medium">{formatComputeTime(neon.currentProject.activeTimeSeconds || 0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Last Active</p>
-                      <p className="text-sm font-medium">
-                        {neon.currentProject.computeLastActiveAt
-                          ? formatRelativeTime(new Date(neon.currentProject.computeLastActiveAt).getTime())
-                          : 'N/A'}
-                      </p>
-                    </div>
+              {/* Projects */}
+              {neon.projects && neon.projects.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Projects</h3>
+                  <div className="space-y-3">
+                    {neon.projects.map((project) => (
+                      <div key={project.id} className="bg-dark-400/50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{project.name}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getNeonProjectBadgeColor(project.displayName)}`}>
+                              {project.displayName}
+                            </span>
+                          </div>
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                            PostgreSQL {project.pgVersion}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">Region</p>
+                            <p className="text-sm font-medium">{project.region}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Compute Time</p>
+                            <p className="text-sm font-medium">{formatComputeTime(project.activeTimeSeconds || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">CPU Used</p>
+                            <p className="text-sm font-medium">{formatComputeTime(project.cpuUsedSeconds || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Last Active</p>
+                            <p className="text-sm font-medium">
+                              {project.computeLastActiveAt
+                                ? formatRelativeTime(new Date(project.computeLastActiveAt).getTime())
+                                : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1332,11 +1346,16 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-400 mb-3">Branches</h3>
                   <div className="space-y-2">
-                    {neon.branches?.slice(0, 5).map((branch) => (
+                    {neon.branches?.slice(0, 8).map((branch) => (
                       <div key={branch.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${branch.currentState === 'ready' ? 'bg-green-400' : 'bg-yellow-400'}`} />
                           <span className="text-sm font-medium">{branch.name}</span>
+                          {branch.projectName && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getNeonProjectBadgeColor(branch.projectName)}`}>
+                              {branch.projectName}
+                            </span>
+                          )}
                           {branch.primary && (
                             <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">primary</span>
                           )}
@@ -1356,12 +1375,17 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-400 mb-3">Compute Endpoints</h3>
                   <div className="space-y-2">
-                    {neon.endpoints?.slice(0, 5).map((endpoint) => (
+                    {neon.endpoints?.slice(0, 8).map((endpoint) => (
                       <div key={endpoint.id} className="bg-dark-400/30 rounded px-3 py-2">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${getEndpointStatusColor(endpoint.currentState)}`} />
-                            <span className="text-sm font-mono truncate max-w-[180px]">{endpoint.host.split('.')[0]}</span>
+                            <span className="text-sm font-mono truncate max-w-[140px]">{endpoint.host.split('.')[0]}</span>
+                            {endpoint.projectName && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${getNeonProjectBadgeColor(endpoint.projectName)}`}>
+                                {endpoint.projectName}
+                              </span>
+                            )}
                           </div>
                           <span className="text-xs text-gray-500 capitalize">{endpoint.currentState}</span>
                         </div>
@@ -1382,7 +1406,7 @@ export default function AdminPage() {
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-400 mb-3">Recent Operations</h3>
                   <div className="space-y-2">
-                    {neon.operations.slice(0, 5).map((op) => (
+                    {neon.operations.slice(0, 8).map((op) => (
                       <div key={op.id} className="flex justify-between items-center bg-dark-400/30 rounded px-3 py-2">
                         <div className="flex items-center gap-2">
                           <span className={`w-2 h-2 rounded-full ${
@@ -1391,6 +1415,11 @@ export default function AdminPage() {
                             op.status === 'error' ? 'bg-red-400' : 'bg-gray-400'
                           }`} />
                           <span className="text-sm">{op.action.replace(/_/g, ' ')}</span>
+                          {op.projectName && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${getNeonProjectBadgeColor(op.projectName)}`}>
+                              {op.projectName}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <span className={`text-xs capitalize ${
@@ -1421,10 +1450,20 @@ export default function AdminPage() {
                   </code>
                 </div>
               )}
+              {neon?.projects && neon.projects.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">Projects: </span>
+                  {neon.projects.map((project) => (
+                    <span key={project.id} className={`text-xs px-2 py-1 rounded ${getNeonProjectBadgeColor(project.displayName)}`}>
+                      {project.displayName}
+                    </span>
+                  ))}
+                </div>
+              )}
               {neon?.configured && (
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
                   <i className="fas fa-check-circle mr-1" />
-                  Connected
+                  {neon.summary?.totalProjects || 0} Connected
                 </span>
               )}
             </div>
