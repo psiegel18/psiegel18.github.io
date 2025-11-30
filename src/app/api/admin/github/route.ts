@@ -246,12 +246,122 @@ export async function GET() {
     )
     workflowRuns = workflowRuns.slice(0, 10)
 
+    // Get security alerts (Dependabot and code scanning) for top repos
+    let securityAlerts: Array<{
+      type: 'dependabot' | 'code_scanning'
+      repo: string
+      severity: string
+      package?: string
+      ecosystem?: string
+      summary: string
+      url: string
+      createdAt: string
+      state: string
+    }> = []
+
+    for (const repo of repos.slice(0, 5)) {
+      // Dependabot alerts
+      try {
+        const dependabotResponse = await fetch(
+          `${GITHUB_API_BASE}/repos/${repo.fullName}/dependabot/alerts?state=open&per_page=10`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          }
+        )
+        if (dependabotResponse.ok) {
+          const alerts = await dependabotResponse.json() as Array<{
+            number: number
+            state: string
+            security_advisory: {
+              severity: string
+              summary: string
+            }
+            security_vulnerability: {
+              package: { name: string; ecosystem: string }
+            }
+            html_url: string
+            created_at: string
+          }>
+          if (Array.isArray(alerts)) {
+            securityAlerts.push(...alerts.map(alert => ({
+              type: 'dependabot' as const,
+              repo: repo.name,
+              severity: alert.security_advisory?.severity || 'unknown',
+              package: alert.security_vulnerability?.package?.name,
+              ecosystem: alert.security_vulnerability?.package?.ecosystem,
+              summary: alert.security_advisory?.summary || 'Security vulnerability',
+              url: alert.html_url,
+              createdAt: alert.created_at,
+              state: alert.state,
+            })))
+          }
+        }
+      } catch {
+        // Dependabot may not be enabled
+      }
+
+      // Code scanning alerts
+      try {
+        const codeScanResponse = await fetch(
+          `${GITHUB_API_BASE}/repos/${repo.fullName}/code-scanning/alerts?state=open&per_page=10`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          }
+        )
+        if (codeScanResponse.ok) {
+          const alerts = await codeScanResponse.json() as Array<{
+            number: number
+            state: string
+            rule: { severity: string; description: string }
+            html_url: string
+            created_at: string
+          }>
+          if (Array.isArray(alerts)) {
+            securityAlerts.push(...alerts.map(alert => ({
+              type: 'code_scanning' as const,
+              repo: repo.name,
+              severity: alert.rule?.severity || 'unknown',
+              summary: alert.rule?.description || 'Code scanning alert',
+              url: alert.html_url,
+              createdAt: alert.created_at,
+              state: alert.state,
+            })))
+          }
+        }
+      } catch {
+        // Code scanning may not be enabled
+      }
+    }
+
+    // Sort security alerts by severity and date
+    const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, unknown: 4 }
+    securityAlerts.sort((a, b) => {
+      const severityDiff = (severityOrder[a.severity] || 4) - (severityOrder[b.severity] || 4)
+      if (severityDiff !== 0) return severityDiff
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+    securityAlerts = securityAlerts.slice(0, 20)
+
     // Calculate stats
     const totalStars = repos.reduce((sum, r) => sum + r.stars, 0)
     const totalForks = repos.reduce((sum, r) => sum + r.forks, 0)
     const privateRepos = repos.filter(r => r.private).length
     const publicRepos = repos.filter(r => !r.private).length
     const languages = Array.from(new Set(repos.map(r => r.language).filter(Boolean)))
+
+    // Security stats
+    const criticalAlerts = securityAlerts.filter(a => a.severity === 'critical').length
+    const highAlerts = securityAlerts.filter(a => a.severity === 'high').length
+    const dependabotAlerts = securityAlerts.filter(a => a.type === 'dependabot').length
+    const codeScanAlerts = securityAlerts.filter(a => a.type === 'code_scanning').length
 
     return NextResponse.json({
       configured: true,
@@ -272,12 +382,18 @@ export async function GET() {
         openIssues: issues.length,
         openPRs: pullRequests.length,
         languages: languages.slice(0, 5),
+        securityAlerts: securityAlerts.length,
+        criticalAlerts,
+        highAlerts,
+        dependabotAlerts,
+        codeScanAlerts,
       },
       repos,
       events,
       issues,
       pullRequests,
       workflowRuns,
+      securityAlerts,
     })
   } catch (error) {
     console.error('GitHub API error:', error)

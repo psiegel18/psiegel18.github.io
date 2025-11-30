@@ -264,6 +264,58 @@ export async function GET() {
       transactions24h = series.reduce((sum, val) => sum + val, 0)
     }
 
+    // Fetch recent releases
+    let releases: Array<{
+      version: string
+      shortVersion: string
+      dateCreated: string
+      dateReleased?: string
+      newGroups: number
+      url: string
+      projects: string[]
+      commitCount: number
+      lastDeploy?: {
+        environment: string
+        dateFinished: string
+      }
+    }> = []
+
+    try {
+      const releasesResponse = await sentryFetch<Array<{
+        version: string
+        shortVersion: string
+        dateCreated: string
+        dateReleased: string | null
+        newGroups: number
+        url: string
+        projects: Array<{ slug: string }>
+        commitCount: number
+        lastDeploy: {
+          environment: string
+          dateFinished: string
+        } | null
+      }>>(`/releases/?per_page=10`, token, org)
+
+      if (Array.isArray(releasesResponse)) {
+        releases = releasesResponse.map(release => ({
+          version: release.version,
+          shortVersion: release.shortVersion,
+          dateCreated: release.dateCreated,
+          dateReleased: release.dateReleased || undefined,
+          newGroups: release.newGroups,
+          url: release.url,
+          projects: release.projects.map(p => p.slug),
+          commitCount: release.commitCount,
+          lastDeploy: release.lastDeploy ? {
+            environment: release.lastDeploy.environment,
+            dateFinished: release.lastDeploy.dateFinished,
+          } : undefined,
+        }))
+      }
+    } catch {
+      // Releases may not be available
+    }
+
     // Format issues by project for the breakdown
     const projectsWithIssues = projects.map(p => {
       const projectIssues = issuesByProject[p.slug] || []
@@ -300,12 +352,14 @@ export async function GET() {
         uniqueUsers,
         errors24h,
         transactions24h,
+        totalReleases: releases.length,
       },
       errorTrend: {
         intervals: errorStats?.intervals || [],
         values: errorTrend,
       },
       issues: formattedIssues,
+      releases,
     })
   } catch (error) {
     console.error('Sentry API error:', error)

@@ -86,7 +86,7 @@ export async function GET() {
       modifiedOn: zone.modified_on,
     }))
 
-    // Fetch analytics for each zone (last 24 hours)
+    // Fetch analytics, DNS records, and SSL certificates for each zone
     const zoneAnalytics: Record<string, {
       requests: number
       bandwidth: number
@@ -94,7 +94,25 @@ export async function GET() {
       pageViews: number
     }> = {}
 
+    const zoneDnsRecords: Record<string, Array<{
+      id: string
+      type: string
+      name: string
+      content: string
+      proxied: boolean
+      ttl: number
+    }>> = {}
+
+    const zoneSslCerts: Record<string, {
+      status: string
+      issuer?: string
+      expiresOn?: string
+      daysUntilExpiry?: number
+      hosts?: string[]
+    }> = {}
+
     for (const zone of zones.slice(0, 5)) { // Limit to 5 zones to avoid rate limits
+      // Analytics
       try {
         const analyticsResponse = await cfFetch<{
           totals: {
@@ -115,6 +133,69 @@ export async function GET() {
         }
       } catch {
         // Analytics may not be available for all plans
+      }
+
+      // DNS Records
+      try {
+        const dnsResponse = await cfFetch<Array<{
+          id: string
+          type: string
+          name: string
+          content: string
+          proxied: boolean
+          ttl: number
+        }>>(`/zones/${zone.id}/dns_records?per_page=100`, apiToken)
+
+        if (dnsResponse.success && Array.isArray(dnsResponse.result)) {
+          zoneDnsRecords[zone.id] = dnsResponse.result.map(record => ({
+            id: record.id,
+            type: record.type,
+            name: record.name,
+            content: record.content,
+            proxied: record.proxied,
+            ttl: record.ttl,
+          }))
+        }
+      } catch {
+        // DNS may not be accessible
+      }
+
+      // SSL Certificates
+      try {
+        const sslResponse = await cfFetch<{
+          certificate_packs?: Array<{
+            id: string
+            type: string
+            status: string
+            hosts: string[]
+            certificates?: Array<{
+              issuer: string
+              expires_on: string
+            }>
+          }>
+        }>(`/zones/${zone.id}/ssl/certificate_packs?status=active`, apiToken)
+
+        if (sslResponse.success && sslResponse.result?.certificate_packs?.[0]) {
+          const pack = sslResponse.result.certificate_packs[0]
+          const cert = pack.certificates?.[0]
+          let daysUntilExpiry: number | undefined
+
+          if (cert?.expires_on) {
+            const expiryDate = new Date(cert.expires_on)
+            const now = new Date()
+            daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          }
+
+          zoneSslCerts[zone.id] = {
+            status: pack.status,
+            issuer: cert?.issuer,
+            expiresOn: cert?.expires_on,
+            daysUntilExpiry,
+            hosts: pack.hosts,
+          }
+        }
+      } catch {
+        // SSL info may not be accessible
       }
     }
 
@@ -272,6 +353,18 @@ export async function GET() {
     const totalBandwidth = Object.values(zoneAnalytics).reduce((sum, z) => sum + z.bandwidth, 0)
     const totalThreats = Object.values(zoneAnalytics).reduce((sum, z) => sum + z.threats, 0)
 
+    // Calculate DNS stats
+    const totalDnsRecords = Object.values(zoneDnsRecords).reduce((sum, records) => sum + records.length, 0)
+
+    // Calculate SSL warnings (certs expiring within 30 days)
+    const sslWarnings = Object.entries(zoneSslCerts)
+      .filter(([, cert]) => cert.daysUntilExpiry !== undefined && cert.daysUntilExpiry <= 30)
+      .map(([zoneId, cert]) => ({
+        zone: zones.find(z => z.id === zoneId)?.name || zoneId,
+        daysUntilExpiry: cert.daysUntilExpiry,
+        expiresOn: cert.expiresOn,
+      }))
+
     return NextResponse.json({
       configured: true,
       accountId: accountId || null,
@@ -280,6 +373,8 @@ export async function GET() {
         totalWorkers: workers.length,
         totalPages: pages.length,
         totalR2Buckets: r2Summary.totalBuckets,
+        totalDnsRecords,
+        sslWarningsCount: sslWarnings.length,
         r2Storage: {
           totalObjects: r2Summary.totalObjects,
           totalStorageUsed: r2Summary.totalStorageUsed,
@@ -292,6 +387,9 @@ export async function GET() {
       },
       zones,
       zoneAnalytics,
+      zoneDnsRecords,
+      zoneSslCerts,
+      sslWarnings,
       workers,
       pages,
       r2Buckets,
