@@ -36,6 +36,13 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+function getFileExtension(key: string): string {
+  const ext = key.split('.').pop()?.toLowerCase() || ''
+  // Return empty string if the "extension" is the same as the full filename (no extension)
+  if (ext === key.toLowerCase() || !ext) return '(no extension)'
+  return `.${ext}`
+}
+
 function getFileType(key: string): string {
   const ext = key.split('.').pop()?.toLowerCase() || ''
   const typeMap: Record<string, string> = {
@@ -68,6 +75,14 @@ type BucketStats = {
   totalBytes: number
   totalFormatted: string
   byType: Array<{
+    type: string
+    count: number
+    bytes: number
+    formatted: string
+    percent: string
+  }>
+  byExtension: Array<{
+    extension: string
     type: string
     count: number
     bytes: number
@@ -118,6 +133,7 @@ async function getBucketStats(r2Client: S3Client, bucketName: string, createdAt?
       totalBytes: 0,
       totalFormatted: '0 B',
       byType: [],
+      byExtension: [],
       byDirectory: [],
       recentUploads: [],
     }
@@ -135,6 +151,18 @@ async function getBucketStats(r2Client: S3Client, bucketName: string, createdAt?
     }
     byType[type].count++
     byType[type].bytes += obj.Size || 0
+  }
+
+  // Group by file extension
+  const byExtension: Record<string, { count: number; bytes: number; type: string }> = {}
+  for (const obj of allObjects) {
+    const ext = getFileExtension(obj.Key || '')
+    const type = getFileType(obj.Key || '')
+    if (!byExtension[ext]) {
+      byExtension[ext] = { count: 0, bytes: 0, type }
+    }
+    byExtension[ext].count++
+    byExtension[ext].bytes += obj.Size || 0
   }
 
   // Group by directory
@@ -158,6 +186,19 @@ async function getBucketStats(r2Client: S3Client, bucketName: string, createdAt?
       percent: totalBytes > 0 ? ((data.bytes / totalBytes) * 100).toFixed(1) : '0',
     }))
     .sort((a, b) => b.bytes - a.bytes)
+
+  // Sort and format extension stats
+  const extensionStats = Object.entries(byExtension)
+    .map(([extension, data]) => ({
+      extension,
+      type: data.type,
+      count: data.count,
+      bytes: data.bytes,
+      formatted: formatBytes(data.bytes),
+      percent: totalBytes > 0 ? ((data.bytes / totalBytes) * 100).toFixed(1) : '0',
+    }))
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 15) // Top 15 extensions
 
   // Sort and format directory stats
   const directoryStats = Object.entries(byDirectory)
@@ -194,6 +235,7 @@ async function getBucketStats(r2Client: S3Client, bucketName: string, createdAt?
     totalBytes,
     totalFormatted: formatBytes(totalBytes),
     byType: typeStats,
+    byExtension: extensionStats,
     byDirectory: directoryStats,
     recentUploads,
   }

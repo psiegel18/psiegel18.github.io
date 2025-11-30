@@ -432,6 +432,14 @@ type R2BucketStats = {
     formatted: string
     percent: string
   }>
+  byExtension: Array<{
+    extension: string
+    type: string
+    count: number
+    bytes: number
+    formatted: string
+    percent: string
+  }>
   byDirectory: Array<{
     directory: string
     count: number
@@ -873,9 +881,9 @@ export default function AdminPage() {
                 {uptime.summary.up}/{uptime.summary.total}
               </span>
             )}
-            {sentry?.configured && sentry.summary && sentry.summary.criticalIssues > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400">
-                {sentry.summary.criticalIssues}
+            {sentry?.configured && sentry.summary && sentry.summary.unresolvedIssues > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-xs ${sentry.summary.criticalIssues > 0 ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                <i className="fas fa-bug mr-1" />{sentry.summary.unresolvedIssues}
               </span>
             )}
           </div>
@@ -2367,6 +2375,40 @@ export default function AdminPage() {
                               </div>
                             )}
 
+                            {/* By Extension */}
+                            {bucket.byExtension && bucket.byExtension.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">By Extension</h5>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                  {bucket.byExtension.map((ext) => (
+                                    <div key={ext.extension} className="flex items-center justify-between bg-dark-500/50 rounded-lg px-4 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <i className={`fas ${
+                                          ext.type === 'Images' ? 'fa-image text-blue-400' :
+                                          ext.type === 'Videos' ? 'fa-video text-purple-400' :
+                                          ext.type === 'Audio' ? 'fa-music text-green-400' :
+                                          ext.type === 'Documents' ? 'fa-file-alt text-yellow-400' :
+                                          ext.type === 'Archives' ? 'fa-file-archive text-orange-400' :
+                                          ext.type === 'Code' ? 'fa-code text-cyan-400' :
+                                          ext.type === 'Data' ? 'fa-database text-emerald-400' :
+                                          'fa-file text-gray-400'
+                                        }`} />
+                                        <span className="text-sm font-mono">{ext.extension}</span>
+                                        <span className="text-xs text-gray-500">({ext.type})</span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-sm">
+                                        <span className="text-gray-500">{ext.count} files</span>
+                                        <span className="text-gray-400">{ext.formatted}</span>
+                                        <span className="text-gray-500 w-12 text-right">{ext.percent}%</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                             {/* By Directory */}
                             {bucket.byDirectory && bucket.byDirectory.length > 0 && (
                               <div>
