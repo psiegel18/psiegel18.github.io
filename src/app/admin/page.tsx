@@ -210,6 +210,62 @@ export default function AdminPage() {
           )}
         </div>
 
+        {/* Google Analytics */}
+        <div className="card p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">
+            <i className="fas fa-chart-line text-orange-400 mr-2" />
+            Google Analytics
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Property ID</p>
+              <code className="bg-dark-400 px-3 py-2 rounded text-primary-400 block">
+                G-V3J7C7JJWC
+              </code>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Status</p>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-500/20 text-green-400">
+                <i className="fas fa-check-circle mr-2" />
+                Active
+              </span>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a
+              href="https://analytics.google.com/analytics/web/#/p469893186/reports/intelligenthome"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+            >
+              <i className="fas fa-external-link-alt mr-2" />
+              Open Google Analytics
+            </a>
+            <a
+              href="https://analytics.google.com/analytics/web/#/p469893186/reports/reportinghub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              <i className="fas fa-chart-bar mr-2" />
+              View Reports
+            </a>
+            <a
+              href="https://analytics.google.com/analytics/web/#/p469893186/realtime/overview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+            >
+              <i className="fas fa-clock mr-2" />
+              Real-Time
+            </a>
+          </div>
+          <p className="text-gray-500 text-sm mt-4">
+            <i className="fas fa-info-circle mr-1" />
+            Analytics data may take up to 24-48 hours to appear for new properties.
+          </p>
+        </div>
+
         {/* Quick Actions */}
         <div className="card p-6">
           <h2 className="text-xl font-semibold mb-4">
