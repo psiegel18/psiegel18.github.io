@@ -79,8 +79,9 @@ export const authOptions: NextAuthOptions = {
         token.isGuest = user.isGuest || false
 
         // Check if user is admin by email (handles race condition with DB update)
-        const adminEmail = process.env.ADMIN_EMAIL
-        if (user.email && user.email === adminEmail) {
+        const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim()
+        const userEmail = user.email?.toLowerCase().trim()
+        if (userEmail && adminEmail && userEmail === adminEmail) {
           token.role = 'ADMIN'
           // Also ensure DB is updated
           await prisma.user.update({
@@ -94,8 +95,9 @@ export const authOptions: NextAuthOptions = {
 
       // For non-guest users, always check admin status by email
       // This ensures role changes are reflected without re-login
-      const adminEmail = process.env.ADMIN_EMAIL
-      if (token.email && token.email === adminEmail) {
+      const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim()
+      const tokenEmail = (token.email as string)?.toLowerCase().trim()
+      if (tokenEmail && adminEmail && tokenEmail === adminEmail) {
         token.role = 'ADMIN'
       } else if (token.id && !token.isGuest && token.email) {
         try {
