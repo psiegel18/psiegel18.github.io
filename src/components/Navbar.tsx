@@ -23,7 +23,7 @@ export function Navbar() {
               alt="Psiegel Logo"
               width={40}
               height={40}
-              className="rounded-full"
+              className="rounded-lg"
             />
             <span className="text-2xl font-bold text-gradient">Psiegel.org</span>
           </Link>
