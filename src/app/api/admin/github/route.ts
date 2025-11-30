@@ -249,7 +249,7 @@ export async function GET() {
     const totalForks = repos.reduce((sum, r) => sum + r.forks, 0)
     const privateRepos = repos.filter(r => r.private).length
     const publicRepos = repos.filter(r => !r.private).length
-    const languages = [...new Set(repos.map(r => r.language).filter(Boolean))]
+    const languages = Array.from(new Set(repos.map(r => r.language).filter(Boolean)))
 
     return NextResponse.json({
       configured: true,
