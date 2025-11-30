@@ -68,23 +68,7 @@ export async function GET() {
     const apiToken = process.env.CLOUDFLARE_API_TOKEN
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
 
-    // Verify token by getting user info
-    const userResponse = await cfFetch<{ id: string; email: string }>('/user', apiToken)
-    console.log('Cloudflare API: User response', {
-      success: userResponse.success,
-      hasResult: !!userResponse.result,
-      errors: userResponse.errors,
-    })
-    if (!userResponse.success) {
-      console.log('Cloudflare API: Token validation failed', userResponse.errors)
-      return NextResponse.json({
-        configured: false,
-        error: 'Invalid Cloudflare API token',
-        details: userResponse.errors.map(e => e.message).join(', '),
-      }, { status: 401 })
-    }
-
-    // Fetch zones (domains)
+    // Fetch zones (domains) - this also verifies the token is valid
     const zonesResponse = await cfFetch<Array<{
       id: string
       name: string
@@ -97,7 +81,22 @@ export async function GET() {
       modified_on: string
     }>>('/zones', apiToken)
 
-    const zones = zonesResponse.success ? zonesResponse.result.map(zone => ({
+    console.log('Cloudflare API: Zones response', {
+      success: zonesResponse.success,
+      zoneCount: zonesResponse.result?.length || 0,
+      errors: zonesResponse.errors,
+    })
+
+    if (!zonesResponse.success) {
+      console.log('Cloudflare API: Token validation failed', zonesResponse.errors)
+      return NextResponse.json({
+        configured: false,
+        error: 'Invalid Cloudflare API token',
+        details: zonesResponse.errors.map(e => e.message).join(', '),
+      }, { status: 401 })
+    }
+
+    const zones = zonesResponse.result.map(zone => ({
       id: zone.id,
       name: zone.name,
       status: zone.status,
@@ -244,9 +243,6 @@ export async function GET() {
     return NextResponse.json({
       configured: true,
       accountId: accountId || null,
-      user: {
-        email: userResponse.result.email,
-      },
       summary: {
         totalZones: zones.length,
         totalWorkers: workers.length,
