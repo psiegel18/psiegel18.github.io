@@ -4,6 +4,7 @@ import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Navbar } from '@/components/Navbar'
+import { Footer } from '@/components/Footer'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
@@ -53,10 +54,13 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <Navbar />
-          <main className="min-h-screen pt-16">
-            {children}
-          </main>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <main className="flex-1 pt-16">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </Providers>
         {/* Vercel Analytics */}
         <Analytics />

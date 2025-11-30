@@ -85,12 +85,13 @@ export default function BlogPage() {
                 <Link href={`/blog/${post.slug}`}>
                   <div className="flex flex-col md:flex-row gap-6">
                     {post.coverImage && (
-                      <div className="md:w-48 h-32 relative rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="md:w-48 flex-shrink-0">
                         <Image
                           src={post.coverImage}
                           alt={post.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          width={192}
+                          height={128}
+                          className="rounded-lg w-full h-auto group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                     )}

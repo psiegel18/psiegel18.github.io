@@ -369,6 +369,17 @@ type SentryData = {
     name: string
     platform: string
     status: string
+    issueCount: number
+    criticalCount: number
+    issues: Array<{
+      id: string
+      shortId: string
+      title: string
+      level: string
+      count: number
+      lastSeen: string
+      url: string
+    }>
   }>
   summary?: {
     totalProjects: number
@@ -1091,9 +1102,10 @@ export default function AdminPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="bg-dark-400/50 rounded-lg p-3 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Unresolved</p>
+                    <p className="text-gray-400 text-xs mb-1">Total Unresolved</p>
                     <p className="text-2xl font-bold text-orange-400">{sentry.summary?.unresolvedIssues || 0}</p>
                   </div>
                   <div className="bg-dark-400/50 rounded-lg p-3 text-center">
@@ -1105,26 +1117,61 @@ export default function AdminPage() {
                     <p className="text-2xl font-bold text-yellow-400">{sentry.summary?.errors24h || 0}</p>
                   </div>
                   <div className="bg-dark-400/50 rounded-lg p-3 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Users Affected</p>
-                    <p className="text-2xl font-bold text-blue-400">{sentry.summary?.uniqueUsers || 0}</p>
+                    <p className="text-gray-400 text-xs mb-1">Projects</p>
+                    <p className="text-2xl font-bold text-blue-400">{sentry.summary?.totalProjects || 0}</p>
                   </div>
                 </div>
-                {sentry.issues && sentry.issues.length > 0 && (
-                  <div className="space-y-2">
-                    {sentry.issues.slice(0, 4).map((issue) => (
-                      <a key={issue.id} href={issue.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-dark-400/30 rounded-lg px-4 py-2 hover:bg-dark-400/50">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className={`w-2 h-2 rounded-full ${issue.level === 'error' || issue.level === 'fatal' ? 'bg-red-400' : 'bg-yellow-400'}`} />
-                          <span className="text-sm truncate">{issue.title}</span>
+
+                {/* Per-project breakdown */}
+                {sentry.projects && sentry.projects.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Issues by Project</h4>
+                    {sentry.projects.map((project) => (
+                      <div key={project.id} className="bg-dark-400/30 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{project.name}</span>
+                            <span className="text-xs px-2 py-0.5 bg-dark-300 rounded text-gray-400">{project.platform}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="text-orange-400">{project.issueCount} issues</span>
+                            {project.criticalCount > 0 && (
+                              <span className="text-red-400">{project.criticalCount} critical</span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs text-gray-500">{issue.count} events</span>
-                      </a>
+                        {project.issues.length > 0 ? (
+                          <div className="space-y-2">
+                            {project.issues.map((issue) => (
+                              <a
+                                key={issue.id}
+                                href={issue.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between bg-dark-500/50 rounded px-3 py-2 hover:bg-dark-500 transition-colors"
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${issue.level === 'error' || issue.level === 'fatal' ? 'bg-red-400' : 'bg-yellow-400'}`} />
+                                  <span className="text-sm truncate">{issue.title}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-gray-500 flex-shrink-0 ml-2">
+                                  <span>{issue.count} events</span>
+                                  <span>{new Date(issue.lastSeen).toLocaleDateString()}</span>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-2">No unresolved issues</p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
+
                 <div className="flex gap-3 mt-4">
-                  <a href="https://sentry.io" target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
-                    <i className="fas fa-external-link-alt mr-2" />Dashboard
+                  <a href={`https://${sentry.organization}.sentry.io/issues/`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">
+                    <i className="fas fa-external-link-alt mr-2" />View All in Sentry
                   </a>
                 </div>
               </>
