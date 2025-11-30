@@ -169,19 +169,26 @@ export async function GET() {
     }
 
     const projectSlugs = projects.map(p => p.slug)
-    const projectQuery = projectSlugs.map(s => `project:${s}`).join(' OR ')
 
-    // Get unresolved issues (last 24 hours activity)
+    // Get ALL unresolved issues across the organization (no time filter)
     let issues: SentryIssue[] = []
     try {
       issues = await sentryFetch<SentryIssue[]>(
-        `/issues/?query=is:unresolved ${projectQuery}&statsPeriod=24h&limit=20`,
+        `/issues/?query=is:unresolved&limit=100`,
         token,
         org
       )
     } catch (error) {
       console.error('Failed to fetch Sentry issues:', error)
       // Continue with empty issues - don't fail the whole request
+    }
+
+    // Get issues grouped by project
+    const issuesByProject: Record<string, SentryIssue[]> = {}
+    for (const project of projects) {
+      issuesByProject[project.slug] = issues.filter(
+        (issue) => issue.project.slug === project.slug
+      )
     }
 
     const formattedIssues = issues.map(issue => ({
@@ -257,16 +264,33 @@ export async function GET() {
       transactions24h = series.reduce((sum, val) => sum + val, 0)
     }
 
-    return NextResponse.json({
-      configured: true,
-      organization: org,
-      projects: projects.map(p => ({
+    // Format issues by project for the breakdown
+    const projectsWithIssues = projects.map(p => {
+      const projectIssues = issuesByProject[p.slug] || []
+      return {
         id: p.id,
         slug: p.slug,
         name: p.name,
         platform: p.platform,
         status: p.status,
-      })),
+        issueCount: projectIssues.length,
+        criticalCount: projectIssues.filter(i => i.level === 'fatal' || i.level === 'error').length,
+        issues: projectIssues.slice(0, 10).map(issue => ({
+          id: issue.id,
+          shortId: issue.shortId,
+          title: issue.title,
+          level: issue.level,
+          count: parseInt(issue.count),
+          lastSeen: issue.lastSeen,
+          url: issue.permalink,
+        })),
+      }
+    })
+
+    return NextResponse.json({
+      configured: true,
+      organization: org,
+      projects: projectsWithIssues,
       summary: {
         totalProjects: projects.length,
         unresolvedIssues: unresolvedCount,
