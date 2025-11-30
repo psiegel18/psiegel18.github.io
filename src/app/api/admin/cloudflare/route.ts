@@ -106,7 +106,7 @@ export async function GET() {
       nameServers: zone.name_servers,
       createdOn: zone.created_on,
       modifiedOn: zone.modified_on,
-    })) : []
+    }))
 
     // Fetch analytics for each zone (last 24 hours)
     const zoneAnalytics: Record<string, {
