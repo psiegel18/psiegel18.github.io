@@ -117,11 +117,25 @@ export async function GET() {
   try {
     // Check admin access
     const session = await getServerSession(authOptions)
+
+    // Debug logging for session
+    console.log('UptimeRobot API: Session check', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      userEmail: session?.user?.email?.slice(0, 3) + '...',
+    })
+
     if (!session?.user || session.user.role !== 'ADMIN') {
+      console.log('UptimeRobot API: Unauthorized - session check failed')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if API key is configured
+    const hasKey = !!process.env.UPTIMEROBOT_API_KEY
+    const keyPreview = process.env.UPTIMEROBOT_API_KEY?.slice(0, 4) + '...'
+    console.log('UptimeRobot API: Key check', { hasKey, keyPreview })
+
     if (!process.env.UPTIMEROBOT_API_KEY) {
       return NextResponse.json({
         configured: false,
@@ -134,7 +148,14 @@ export async function GET() {
     // Get account details
     const accountResponse = await uptimeRobotFetch('/getAccountDetails', apiKey)
 
+    console.log('UptimeRobot API: Account response', {
+      stat: accountResponse.stat,
+      hasAccount: !!accountResponse.account,
+      error: accountResponse.error,
+    })
+
     if (accountResponse.stat !== 'ok') {
+      console.log('UptimeRobot API: Key validation failed', accountResponse.error)
       return NextResponse.json({
         configured: false,
         error: 'Invalid UptimeRobot API key',

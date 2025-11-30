@@ -39,11 +39,25 @@ export async function GET() {
   try {
     // Check admin access
     const session = await getServerSession(authOptions)
+
+    // Debug logging for session
+    console.log('Cloudflare API: Session check', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      userEmail: session?.user?.email?.slice(0, 3) + '...',
+    })
+
     if (!session?.user || session.user.role !== 'ADMIN') {
+      console.log('Cloudflare API: Unauthorized - session check failed')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if credentials are configured
+    const hasToken = !!process.env.CLOUDFLARE_API_TOKEN
+    const tokenPreview = process.env.CLOUDFLARE_API_TOKEN?.slice(0, 4) + '...'
+    console.log('Cloudflare API: Token check', { hasToken, tokenPreview })
+
     if (!process.env.CLOUDFLARE_API_TOKEN) {
       return NextResponse.json({
         configured: false,
@@ -56,7 +70,13 @@ export async function GET() {
 
     // Verify token by getting user info
     const userResponse = await cfFetch<{ id: string; email: string }>('/user', apiToken)
+    console.log('Cloudflare API: User response', {
+      success: userResponse.success,
+      hasResult: !!userResponse.result,
+      errors: userResponse.errors,
+    })
     if (!userResponse.success) {
+      console.log('Cloudflare API: Token validation failed', userResponse.errors)
       return NextResponse.json({
         configured: false,
         error: 'Invalid Cloudflare API token',
