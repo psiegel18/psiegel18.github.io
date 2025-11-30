@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 
-const GA_PROPERTY_ID = '469893186'
+const GA_PROPERTY_ID = '514665322'
 
 export async function GET() {
   try {
