@@ -2,8 +2,9 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type Post = {
   id: string
@@ -20,6 +21,14 @@ type Post = {
   _count: {
     comments: number
   }
+}
+
+type R2Image = {
+  key: string
+  url: string
+  size: number
+  lastModified: string
+  name: string
 }
 
 export default function AdminBlogPage() {
@@ -39,6 +48,15 @@ export default function AdminBlogPage() {
   const [coverImage, setCoverImage] = useState('')
   const [published, setPublished] = useState(false)
   const [error, setError] = useState('')
+
+  // Image picker state
+  const [showImagePicker, setShowImagePicker] = useState(false)
+  const [r2Images, setR2Images] = useState<R2Image[]>([])
+  const [r2Configured, setR2Configured] = useState(false)
+  const [loadingImages, setLoadingImages] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -61,6 +79,77 @@ export default function AdminBlogPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchR2Images = async () => {
+    setLoadingImages(true)
+    try {
+      const response = await fetch('/api/admin/r2/images')
+      const data = await response.json()
+      if (data.configured) {
+        setR2Configured(true)
+        setR2Images(data.images || [])
+      } else {
+        setR2Configured(false)
+      }
+    } catch (error) {
+      console.error('Failed to fetch R2 images:', error)
+    } finally {
+      setLoadingImages(false)
+    }
+  }
+
+  const openImagePicker = () => {
+    setShowImagePicker(true)
+    setUploadError('')
+    fetchR2Images()
+  }
+
+  const selectImage = (url: string) => {
+    setCoverImage(url)
+    setShowImagePicker(false)
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setUploadError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/admin/r2/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setCoverImage(data.url)
+        setShowImagePicker(false)
+        // Refresh images list
+        fetchR2Images()
+      } else {
+        setUploadError(data.error || 'Failed to upload image')
+      }
+    } catch (error) {
+      setUploadError('Failed to upload image')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   const resetForm = () => {
@@ -341,15 +430,43 @@ export default function AdminBlogPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">
-                      Cover Image URL (optional)
+                      Cover Image
                     </label>
-                    <input
-                      type="url"
-                      value={coverImage}
-                      onChange={(e) => setCoverImage(e.target.value)}
-                      className="w-full bg-dark-400 border border-dark-100/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                      placeholder="https://example.com/image.jpg"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={coverImage}
+                        onChange={(e) => setCoverImage(e.target.value)}
+                        className="flex-1 bg-dark-400 border border-dark-100/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                      <button
+                        type="button"
+                        onClick={openImagePicker}
+                        className="btn-secondary whitespace-nowrap"
+                      >
+                        <i className="fas fa-images mr-2" />
+                        Browse R2
+                      </button>
+                    </div>
+                    {coverImage && (
+                      <div className="mt-3 relative w-full h-40 rounded-lg overflow-hidden bg-dark-400">
+                        <Image
+                          src={coverImage}
+                          alt="Cover preview"
+                          fill
+                          className="object-cover"
+                          onError={() => setCoverImage('')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCoverImage('')}
+                          className="absolute top-2 right-2 w-8 h-8 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center text-white"
+                        >
+                          <i className="fas fa-times" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -419,6 +536,113 @@ export default function AdminBlogPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Image Picker Modal */}
+        {showImagePicker && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
+            <div className="bg-dark-300 rounded-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-dark-100/50">
+                <h2 className="text-xl font-bold">
+                  <i className="fas fa-images text-primary-400 mr-2" />
+                  Select Cover Image
+                </h2>
+                <button
+                  onClick={() => setShowImagePicker(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <i className="fas fa-times text-xl" />
+                </button>
+              </div>
+
+              <div className="p-6 border-b border-dark-100/50">
+                <div className="flex gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className={`btn-primary cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                  >
+                    {uploading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-upload mr-2" />
+                        Upload New Image
+                      </>
+                    )}
+                  </label>
+                  <span className="text-gray-500 text-sm self-center">
+                    Max 10MB - JPEG, PNG, GIF, WebP, SVG
+                  </span>
+                </div>
+                {uploadError && (
+                  <p className="text-red-400 text-sm mt-2">
+                    <i className="fas fa-exclamation-circle mr-1" />
+                    {uploadError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingImages ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500" />
+                  </div>
+                ) : !r2Configured ? (
+                  <div className="text-center py-12">
+                    <i className="fas fa-cloud text-4xl text-gray-600 mb-4" />
+                    <p className="text-gray-400 mb-2">R2 storage not configured</p>
+                    <p className="text-gray-500 text-sm">
+                      Add R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, CLOUDFLARE_ACCOUNT_ID, and R2_BUCKET_NAME environment variables.
+                    </p>
+                  </div>
+                ) : r2Images.length === 0 ? (
+                  <div className="text-center py-12">
+                    <i className="fas fa-image text-4xl text-gray-600 mb-4" />
+                    <p className="text-gray-400">No images in personalblog folder yet</p>
+                    <p className="text-gray-500 text-sm mt-2">Upload an image to get started</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {r2Images.map((image) => (
+                      <button
+                        key={image.key}
+                        onClick={() => selectImage(image.url)}
+                        className="group relative aspect-video rounded-lg overflow-hidden bg-dark-400 hover:ring-2 hover:ring-primary-500 transition-all"
+                      >
+                        <Image
+                          src={image.url}
+                          alt={image.name}
+                          fill
+                          className="object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                          <span className="opacity-0 group-hover:opacity-100 text-white font-medium transition-opacity">
+                            <i className="fas fa-check mr-1" />
+                            Select
+                          </span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                          <p className="text-xs text-white truncate">{image.name}</p>
+                          <p className="text-xs text-gray-400">{formatFileSize(image.size)}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
