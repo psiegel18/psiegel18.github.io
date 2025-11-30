@@ -1,8 +1,8 @@
 'use client'
 
-import { signIn, useSession } from 'next-auth/react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 
 function SignInContent() {
   const { data: session } = useSession()
@@ -10,6 +10,7 @@ function SignInContent() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
   const error = searchParams.get('error')
+  const [isSigningIn, setIsSigningIn] = useState(false)
 
   useEffect(() => {
     if (session && !session.user.isGuest) {
@@ -23,6 +24,22 @@ function SignInContent() {
     { id: 'azure-ad', name: 'Microsoft', icon: 'fa-microsoft', color: 'bg-blue-600 text-white hover:bg-blue-700' },
     { id: 'apple', name: 'Apple', icon: 'fa-apple', color: 'bg-black text-white hover:bg-gray-900' },
   ]
+
+  // Handle OAuth sign in - sign out guest first to avoid session conflicts
+  const handleOAuthSignIn = async (providerId: string) => {
+    setIsSigningIn(true)
+    try {
+      // If user is a guest, sign out first to clear the guest session
+      if (session?.user?.isGuest) {
+        await signOut({ redirect: false })
+      }
+      // Then sign in with the OAuth provider
+      await signIn(providerId, { callbackUrl })
+    } catch (err) {
+      console.error('Sign in error:', err)
+      setIsSigningIn(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -54,10 +71,15 @@ function SignInContent() {
           {providers.map((provider) => (
             <button
               key={provider.id}
-              onClick={() => signIn(provider.id, { callbackUrl })}
-              className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg font-medium transition-colors ${provider.color}`}
+              onClick={() => handleOAuthSignIn(provider.id)}
+              disabled={isSigningIn}
+              className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg font-medium transition-colors ${provider.color} ${isSigningIn ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <i className={`fab ${provider.icon} text-xl`} />
+              {isSigningIn ? (
+                <i className="fas fa-spinner fa-spin text-xl" />
+              ) : (
+                <i className={`fab ${provider.icon} text-xl`} />
+              )}
               Continue with {provider.name}
             </button>
           ))}
@@ -71,6 +93,7 @@ function SignInContent() {
           ) : (
             <button
               onClick={() => signIn('guest', { callbackUrl })}
+              disabled={isSigningIn}
               className="text-gray-400 hover:text-white transition-colors"
             >
               <i className="fas fa-user-secret mr-2" />

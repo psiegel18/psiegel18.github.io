@@ -36,8 +36,8 @@ export function Navbar() {
             <Link href="/games/tetris" className="text-gray-300 hover:text-white transition-colors">
               Tetris
             </Link>
-            <Link href="/tools/birthday" className="text-gray-300 hover:text-white transition-colors">
-              Birthday Calculator
+            <Link href="/blog" className="text-gray-300 hover:text-white transition-colors">
+              Blog
             </Link>
             <Link href="/leaderboard" className="text-gray-300 hover:text-white transition-colors">
               Leaderboard
@@ -47,8 +47,8 @@ export function Navbar() {
                 <Link href="/admin" className="text-primary-400 hover:text-primary-300 transition-colors">
                   Admin
                 </Link>
-                <Link href="/admin/house" className="text-primary-400 hover:text-primary-300 transition-colors">
-                  The House
+                <Link href="/admin/blog" className="text-primary-400 hover:text-primary-300 transition-colors">
+                  Blog Admin
                 </Link>
               </>
             )}
@@ -156,6 +156,13 @@ export function Navbar() {
                 <i className="fas fa-th-large mr-2" /> Tetris
               </Link>
               <Link
+                href="/blog"
+                className="text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <i className="fas fa-blog mr-2" /> Blog
+              </Link>
+              <Link
                 href="/tools/birthday"
                 className="text-gray-300 hover:text-white transition-colors"
                 onClick={() => setIsMenuOpen(false)}
@@ -179,11 +186,11 @@ export function Navbar() {
                     <i className="fas fa-cog mr-2" /> Admin
                   </Link>
                   <Link
-                    href="/admin/house"
+                    href="/admin/blog"
                     className="text-primary-400 hover:text-primary-300 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <i className="fas fa-home mr-2" /> The House
+                    <i className="fas fa-edit mr-2" /> Blog Admin
                   </Link>
                 </>
               )}

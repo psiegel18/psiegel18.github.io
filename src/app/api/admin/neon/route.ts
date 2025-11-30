@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const NEON_API_BASE = 'https://console.neon.tech/api/v2'
 
 async function neonFetch<T>(

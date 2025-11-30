@@ -75,12 +75,31 @@ export const authOptions: NextAuthOptions = {
       // On initial sign-in, user object is available
       if (user) {
         token.id = user.id
-        token.role = user.role || 'USER'
+        token.email = user.email // Explicitly set email on token
         token.isGuest = user.isGuest || false
+
+        // Check if user is admin by email (handles race condition with DB update)
+        const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim()
+        const userEmail = user.email?.toLowerCase().trim()
+        if (userEmail && adminEmail && userEmail === adminEmail) {
+          token.role = 'ADMIN'
+          // Also ensure DB is updated
+          await prisma.user.update({
+            where: { email: user.email },
+            data: { role: 'ADMIN' },
+          }).catch(() => {})
+        } else {
+          token.role = user.role || 'USER'
+        }
       }
 
-      // Always fetch the latest role from database for non-guest users
-      if (token.id && !token.isGuest && token.email) {
+      // For non-guest users, always check admin status by email
+      // This ensures role changes are reflected without re-login
+      const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim()
+      const tokenEmail = (token.email as string)?.toLowerCase().trim()
+      if (tokenEmail && adminEmail && tokenEmail === adminEmail) {
+        token.role = 'ADMIN'
+      } else if (token.id && !token.isGuest && token.email) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { email: token.email as string },

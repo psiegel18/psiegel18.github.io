@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const GITHUB_API_BASE = 'https://api.github.com'
 
 type GitHubResponse<T> = T & {

@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { AutoGuestLogin } from '@/components/AutoGuestLogin'
 
 const features = [
   {
@@ -16,6 +15,13 @@ const features = [
     icon: 'fa-th-large',
     href: '/games/tetris',
     color: 'from-blue-500 to-cyan-600',
+  },
+  {
+    title: 'Blog',
+    description: 'Thoughts, updates, and stories',
+    icon: 'fa-blog',
+    href: '/blog',
+    color: 'from-indigo-500 to-purple-600',
   },
   {
     title: 'Birthday Calculator',
@@ -50,9 +56,7 @@ const features = [
 
 export default function Home() {
   return (
-    <>
-      <AutoGuestLogin />
-      <div className="min-h-screen">
+    <div className="min-h-screen">
         {/* Hero Section */}
         <section className="relative py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center">
@@ -148,6 +152,5 @@ export default function Home() {
           </div>
         </footer>
       </div>
-    </>
   )
 }

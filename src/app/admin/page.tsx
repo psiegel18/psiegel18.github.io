@@ -408,43 +408,23 @@ type SentryData = {
   }>
 }
 
-// Collapsible Section Component
-function CollapsibleSection({
-  id,
-  title,
-  icon,
-  iconColor,
-  isCollapsed,
-  onToggle,
-  badge,
-  children
-}: {
-  id: string
-  title: string
-  icon: string
-  iconColor: string
-  isCollapsed: boolean
-  onToggle: () => void
-  badge?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <div className="mb-8">
-      <div
-        className="flex items-center justify-between mb-4 pb-3 border-b border-dark-100/50 cursor-pointer hover:opacity-80"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-3">
-          <i className={`fas fa-chevron-${isCollapsed ? 'right' : 'down'} text-gray-400 text-sm w-4`} />
-          <i className={`${icon} ${iconColor} text-xl`} />
-          <h2 className="text-xl font-bold">{title}</h2>
-        </div>
-        {badge}
-      </div>
-      {!isCollapsed && children}
-    </div>
-  )
-}
+// Tab definitions
+type TabId = 'metrics' | 'monitoring' | 'analytics' | 'infrastructure' | 'development'
+type InfraTabId = 'cloudflare' | 'vercel' | 'neon'
+
+const tabs: { id: TabId; title: string; icon: string; iconColor: string }[] = [
+  { id: 'metrics', title: 'Site Metrics', icon: 'fas fa-chart-pie', iconColor: 'text-primary-400' },
+  { id: 'monitoring', title: 'Monitoring', icon: 'fas fa-heartbeat', iconColor: 'text-green-400' },
+  { id: 'analytics', title: 'Analytics', icon: 'fas fa-chart-line', iconColor: 'text-orange-400' },
+  { id: 'infrastructure', title: 'Infrastructure', icon: 'fas fa-server', iconColor: 'text-blue-400' },
+  { id: 'development', title: 'Development', icon: 'fab fa-github', iconColor: 'text-white' },
+]
+
+const infraTabs: { id: InfraTabId; title: string; icon: string; iconColor: string }[] = [
+  { id: 'cloudflare', title: 'Cloudflare', icon: 'fas fa-cloud', iconColor: 'text-orange-500' },
+  { id: 'vercel', title: 'Vercel', icon: 'fas fa-triangle', iconColor: 'text-white' },
+  { id: 'neon', title: 'Neon', icon: 'fas fa-database', iconColor: 'text-green-400' },
+]
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -466,9 +446,9 @@ export default function AdminPage() {
   const [sentryLoading, setSentryLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
-  // Collapsible sections state
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const toggle = (section: string) => setCollapsed(prev => ({ ...prev, [section]: !prev[section] }))
+  // Active tab state
+  const [activeTab, setActiveTab] = useState<TabId>('metrics')
+  const [activeInfraTab, setActiveInfraTab] = useState<InfraTabId>('cloudflare')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -768,42 +748,87 @@ export default function AdminPage() {
     return null
   }
 
+  // Get badge content for each tab
+  const getTabBadge = (tabId: TabId) => {
+    switch (tabId) {
+      case 'monitoring':
+        return (
+          <div className="flex items-center gap-2">
+            {uptime?.configured && uptime.summary && (
+              <span className={`px-2 py-0.5 rounded-full text-xs ${uptime.summary.down > 0 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                {uptime.summary.up}/{uptime.summary.total}
+              </span>
+            )}
+            {sentry?.configured && sentry.summary && sentry.summary.criticalIssues > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400">
+                {sentry.summary.criticalIssues}
+              </span>
+            )}
+          </div>
+        )
+      case 'analytics':
+        return analytics?.configured && analytics.realtime && (
+          <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-400">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse inline-block mr-1" />
+            {analytics.realtime.activeUsers}
+          </span>
+        )
+      case 'infrastructure':
+        return (
+          <div className="flex items-center gap-1">
+            {cloudflare?.configured && <span className="px-2 py-0.5 rounded-full text-xs bg-orange-500/20 text-orange-400">{cloudflare.summary?.totalZones || 0}</span>}
+            {vercel?.configured && <span className="px-2 py-0.5 rounded-full text-xs bg-white/20 text-white">{vercel.summary?.totalProjects || 0}</span>}
+          </div>
+        )
+      case 'development':
+        return github?.configured && github.summary && (
+          <div className="flex items-center gap-1">
+            <span className="px-2 py-0.5 rounded-full text-xs bg-white/20 text-white">{github.summary.totalRepos}</span>
+            {github.summary.openPRs > 0 && <span className="px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-400">{github.summary.openPRs}</span>}
+          </div>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">
             <i className="fas fa-cog text-primary-400 mr-3" />
             Admin Dashboard
           </h1>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                const sections = ['metrics', 'monitoring', 'analytics', 'infrastructure', 'development']
-                const allCollapsed = sections.every(s => collapsed[s])
-                setCollapsed(sections.reduce((acc, s) => ({ ...acc, [s]: !allCollapsed }), {}))
-              }}
-              className="btn-secondary text-sm"
-            >
-              <i className="fas fa-compress-arrows-alt mr-2" />
-              Toggle All
-            </button>
-            <Link href="/admin/house" className="btn-secondary">
-              <i className="fas fa-home mr-2" />
-              The House
-            </Link>
-          </div>
+          <Link href="/admin/house" className="btn-secondary">
+            <i className="fas fa-home mr-2" />
+            The House
+          </Link>
         </div>
 
-        {/* ==================== SITE METRICS ==================== */}
-        <CollapsibleSection
-          id="metrics"
-          title="Site Metrics"
-          icon="fas fa-chart-pie"
-          iconColor="text-primary-400"
-          isCollapsed={collapsed.metrics}
-          onToggle={() => toggle('metrics')}
-        >
+        {/* Tab Navigation */}
+        <div className="flex flex-wrap gap-2 mb-8 p-1 bg-dark-300/50 rounded-lg">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-dark-200 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white hover:bg-dark-200/50'
+              }`}
+            >
+              <i className={`${tab.icon} ${activeTab === tab.id ? tab.iconColor : ''}`} />
+              <span className="hidden sm:inline">{tab.title}</span>
+              {getTabBadge(tab.id)}
+            </button>
+          ))}
+        </div>
+
+        {/* ==================== SITE METRICS TAB ==================== */}
+        {activeTab === 'metrics' && (
+          <div>
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="card p-6">
@@ -939,31 +964,12 @@ export default function AdminPage() {
             <p className="text-gray-500">No users yet</p>
           )}
           </div>
-        </CollapsibleSection>
+          </div>
+        )}
 
-        {/* ==================== MONITORING & HEALTH ==================== */}
-        <CollapsibleSection
-          id="monitoring"
-          title="Monitoring & Health"
-          icon="fas fa-heartbeat"
-          iconColor="text-green-400"
-          isCollapsed={collapsed.monitoring}
-          onToggle={() => toggle('monitoring')}
-          badge={
-            <div className="flex items-center gap-2">
-              {uptime?.configured && uptime.summary && (
-                <span className={`px-2 py-1 rounded-full text-xs ${uptime.summary.down > 0 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                  {uptime.summary.up}/{uptime.summary.total} Up
-                </span>
-              )}
-              {sentry?.configured && sentry.summary && sentry.summary.criticalIssues > 0 && (
-                <span className="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
-                  {sentry.summary.criticalIssues} Critical
-                </span>
-              )}
-            </div>
-          }
-        >
+        {/* ==================== MONITORING TAB ==================== */}
+        {activeTab === 'monitoring' && (
+          <div>
           {/* UptimeRobot */}
           <div className="card p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -1093,23 +1099,12 @@ export default function AdminPage() {
               </>
             )}
           </div>
-        </CollapsibleSection>
+          </div>
+        )}
 
-        {/* ==================== ANALYTICS ==================== */}
-        <CollapsibleSection
-          id="analytics"
-          title="Analytics"
-          icon="fas fa-chart-line"
-          iconColor="text-orange-400"
-          isCollapsed={collapsed.analytics}
-          onToggle={() => toggle('analytics')}
-          badge={analytics?.configured && analytics.realtime && (
-            <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse inline-block mr-1" />
-              {analytics.realtime.activeUsers} active
-            </span>
-          )}
-        >
+        {/* ==================== ANALYTICS TAB ==================== */}
+        {activeTab === 'analytics' && (
+          <div>
           {/* Google Analytics */}
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -1292,25 +1287,32 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
-        </CollapsibleSection>
+          </div>
+        )}
 
-        {/* ==================== INFRASTRUCTURE ==================== */}
-        <CollapsibleSection
-          id="infrastructure"
-          title="Infrastructure"
-          icon="fas fa-server"
-          iconColor="text-blue-400"
-          isCollapsed={collapsed.infrastructure}
-          onToggle={() => toggle('infrastructure')}
-          badge={
-            <div className="flex items-center gap-2">
-              {cloudflare?.configured && <span className="px-2 py-1 rounded-full text-xs bg-orange-500/20 text-orange-400">{cloudflare.summary?.totalZones || 0} zones</span>}
-              {vercel?.configured && <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{vercel.summary?.totalProjects || 0} projects</span>}
-              {neon?.configured && <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">{neon.summary?.totalProjects || 0} db</span>}
-            </div>
-          }
-        >
+        {/* ==================== INFRASTRUCTURE TAB ==================== */}
+        {activeTab === 'infrastructure' && (
+          <div>
+          {/* Infrastructure Sub-tabs */}
+          <div className="flex gap-2 mb-6 p-1 bg-dark-400/50 rounded-lg w-fit">
+            {infraTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveInfraTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all ${
+                  activeInfraTab === tab.id
+                    ? 'bg-dark-300 text-white shadow'
+                    : 'text-gray-400 hover:text-white hover:bg-dark-300/50'
+                }`}
+              >
+                <i className={`${tab.icon} ${activeInfraTab === tab.id ? tab.iconColor : ''}`} />
+                {tab.title}
+              </button>
+            ))}
+          </div>
+
           {/* Cloudflare */}
+          {activeInfraTab === 'cloudflare' && (
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -1535,8 +1537,10 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+          )}
 
-        {/* Vercel */}
+          {/* Vercel */}
+          {activeInfraTab === 'vercel' && (
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -1783,8 +1787,10 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+          )}
 
-        {/* Neon Postgres */}
+          {/* Neon Postgres */}
+          {activeInfraTab === 'neon' && (
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
@@ -2053,23 +2059,13 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
-        </CollapsibleSection>
-
-        {/* ==================== DEVELOPMENT ==================== */}
-        <CollapsibleSection
-          id="development"
-          title="Development"
-          icon="fab fa-github"
-          iconColor="text-white"
-          isCollapsed={collapsed.development}
-          onToggle={() => toggle('development')}
-          badge={github?.configured && github.summary && (
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{github.summary.totalRepos} repos</span>
-              {github.summary.openPRs > 0 && <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">{github.summary.openPRs} PRs</span>}
-            </div>
           )}
-        >
+          </div>
+        )}
+
+        {/* ==================== DEVELOPMENT TAB ==================== */}
+        {activeTab === 'development' && (
+          <div>
           {/* GitHub */}
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -2363,7 +2359,8 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
-        </CollapsibleSection>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="card p-6">

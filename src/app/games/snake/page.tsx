@@ -221,6 +221,11 @@ export default function SnakePage() {
 
       if (gameState !== 'playing') return
 
+      // Prevent arrow keys from scrolling the page
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault()
+      }
+
       const direction = directionRef.current
       switch (e.key) {
         case 'ArrowUp': if (direction !== 'down') directionRef.current = 'up'; break

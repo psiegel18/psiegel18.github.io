@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const VERCEL_API_BASE = 'https://api.vercel.com'
 
 type VercelResponse<T> = T & {
