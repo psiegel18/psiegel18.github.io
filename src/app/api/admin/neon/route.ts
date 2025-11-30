@@ -162,6 +162,46 @@ async function fetchProjectData(apiKey: string, config: ProjectConfig) {
       console.error(`Failed to fetch operations for ${name}:`, e)
     }
 
+    // Get consumption metrics for the project
+    let consumption: {
+      dataStorageBytesHour: number
+      syntheticStorageSize: number
+      dataTransferBytes: number
+      writtenDataBytes: number
+      computeTimeSeconds: number
+      activeTimeSeconds: number
+    } | null = null
+
+    try {
+      // Get consumption for last 30 days
+      const now = new Date()
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const consumptionResponse = await neonFetch<{
+        periods: Array<{
+          data_storage_bytes_hour: number
+          synthetic_storage_size: number
+          data_transfer_bytes: number
+          written_data_bytes: number
+          compute_time_seconds: number
+          active_time_seconds: number
+        }>
+      }>(`/projects/${projectId}/consumption?from=${thirtyDaysAgo.toISOString()}&to=${now.toISOString()}&granularity=monthly`, apiKey)
+
+      if (consumptionResponse.periods && consumptionResponse.periods.length > 0) {
+        const period = consumptionResponse.periods[0]
+        consumption = {
+          dataStorageBytesHour: period.data_storage_bytes_hour || 0,
+          syntheticStorageSize: period.synthetic_storage_size || 0,
+          dataTransferBytes: period.data_transfer_bytes || 0,
+          writtenDataBytes: period.written_data_bytes || 0,
+          computeTimeSeconds: period.compute_time_seconds || 0,
+          activeTimeSeconds: period.active_time_seconds || 0,
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to fetch consumption for ${name}:`, e)
+    }
+
     return {
       name,
       configured: true,
@@ -179,6 +219,7 @@ async function fetchProjectData(apiKey: string, config: ProjectConfig) {
       databases,
       endpoints,
       operations,
+      consumption,
     }
   } catch (error) {
     console.error(`Failed to fetch Neon data for ${name}:`, error)
@@ -319,6 +360,16 @@ export async function GET() {
       projectName: string
     }> = []
 
+    const allConsumption: Array<{
+      projectName: string
+      dataStorageBytesHour: number
+      syntheticStorageSize: number
+      dataTransferBytes: number
+      writtenDataBytes: number
+      computeTimeSeconds: number
+      activeTimeSeconds: number
+    }> = []
+
     for (const result of projectResults) {
       if (result.configured && 'project' in result && result.project) {
         configuredProjects.push(result.project)
@@ -326,6 +377,12 @@ export async function GET() {
         allDatabases.push(...(result.databases || []))
         allEndpoints.push(...(result.endpoints || []))
         allOperations.push(...(result.operations || []))
+        if ('consumption' in result && result.consumption) {
+          allConsumption.push({
+            projectName: result.name,
+            ...result.consumption,
+          })
+        }
       }
     }
 
@@ -337,6 +394,11 @@ export async function GET() {
     // Calculate totals
     const totalStorageBytes = allBranches.reduce((sum, b) => sum + (b.logicalSize || 0), 0)
     const activeEndpoints = allEndpoints.filter(e => e.currentState === 'active').length
+
+    // Calculate consumption totals
+    const totalComputeTimeSeconds = allConsumption.reduce((sum, c) => sum + c.computeTimeSeconds, 0)
+    const totalDataTransferBytes = allConsumption.reduce((sum, c) => sum + c.dataTransferBytes, 0)
+    const totalWrittenDataBytes = allConsumption.reduce((sum, c) => sum + c.writtenDataBytes, 0)
 
     return NextResponse.json({
       configured: configuredProjects.length > 0,
@@ -351,12 +413,16 @@ export async function GET() {
         totalEndpoints: allEndpoints.length,
         activeEndpoints,
         totalStorageBytes,
+        totalComputeTimeSeconds,
+        totalDataTransferBytes,
+        totalWrittenDataBytes,
       },
       projects: configuredProjects,
       branches: allBranches,
       databases: allDatabases,
       endpoints: allEndpoints,
       operations: allOperations.slice(0, 10), // Last 10 across all projects
+      consumption: allConsumption,
     })
   } catch (error) {
     console.error('Neon API error:', error)

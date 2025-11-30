@@ -8,6 +8,22 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 import { v4 as uuidv4 } from 'uuid'
 
+// Parse admin emails from environment variable (comma-separated list)
+// Supports both ADMIN_EMAILS (multiple) and legacy ADMIN_EMAIL (single)
+function getAdminEmails(): string[] {
+  const adminEmails = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || ''
+  return adminEmails
+    .split(',')
+    .map(email => email.toLowerCase().trim())
+    .filter(email => email.length > 0)
+}
+
+function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const adminEmails = getAdminEmails()
+  return adminEmails.includes(email.toLowerCase().trim())
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
@@ -39,28 +55,31 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
     AzureADProvider({
       clientId: process.env.MICROSOFT_CLIENT_ID!,
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
       tenantId: 'common',
+      allowDangerousEmailAccountLinking: true,
     }),
     AppleProvider({
       clientId: process.env.APPLE_CLIENT_ID!,
       clientSecret: process.env.APPLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
       // Check if this is an OAuth sign-in for an existing guest
       if (account?.provider !== 'guest' && user.email) {
-        // Check if admin
-        const adminEmail = process.env.ADMIN_EMAIL
-        if (user.email === adminEmail) {
+        // Check if admin email and grant admin role
+        if (isAdminEmail(user.email)) {
           await prisma.user.update({
             where: { email: user.email },
             data: { role: 'ADMIN' },
@@ -79,9 +98,7 @@ export const authOptions: NextAuthOptions = {
         token.isGuest = user.isGuest || false
 
         // Check if user is admin by email (handles race condition with DB update)
-        const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim()
-        const userEmail = user.email?.toLowerCase().trim()
-        if (userEmail && adminEmail && userEmail === adminEmail) {
+        if (isAdminEmail(user.email)) {
           token.role = 'ADMIN'
           // Also ensure DB is updated
           await prisma.user.update({
@@ -95,9 +112,7 @@ export const authOptions: NextAuthOptions = {
 
       // For non-guest users, always check admin status by email
       // This ensures role changes are reflected without re-login
-      const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim()
-      const tokenEmail = (token.email as string)?.toLowerCase().trim()
-      if (tokenEmail && adminEmail && tokenEmail === adminEmail) {
+      if (isAdminEmail(token.email as string)) {
         token.role = 'ADMIN'
       } else if (token.id && !token.isGuest && token.email) {
         try {
@@ -153,7 +168,7 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user, isNewUser }) {
-      if (isNewUser && user.email === process.env.ADMIN_EMAIL) {
+      if (isNewUser && isAdminEmail(user.email)) {
         await prisma.user.update({
           where: { id: user.id },
           data: { role: 'ADMIN' },

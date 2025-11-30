@@ -66,6 +66,15 @@ const features: Feature[] = [
     color: 'from-red-500 to-pink-600',
     adminOnly: true,
   },
+  {
+    title: 'House Portal',
+    description: 'Smart home control and monitoring',
+    icon: 'fa-home',
+    href: 'https://house.psiegel.org',
+    external: true,
+    color: 'from-teal-500 to-cyan-600',
+    adminOnly: true,
+  },
 ]
 
 export default function Home() {

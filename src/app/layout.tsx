@@ -11,7 +11,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Psiegel.org',
+  title: 'PSiegel Tech',
   description: 'Personal website with games, tools, and more',
   icons: {
     icon: '/psiegel_frog.ico',
