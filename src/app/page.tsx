@@ -60,8 +60,8 @@ export default function Home() {
               <Image
                 src="/psiegel_frog.png"
                 alt="Psiegel Logo"
-                width={120}
-                height={120}
+                width={240}
+                height={240}
                 className="rounded-2xl"
                 priority
               />
