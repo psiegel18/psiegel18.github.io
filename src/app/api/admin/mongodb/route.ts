@@ -326,11 +326,30 @@ export async function GET() {
       }>
     }> = []
 
-    // Fetch metrics for all active (non-paused) clusters
+    // Fetch metrics for all active (non-paused) dedicated clusters
+    // Note: Shared tier clusters (M0, M2, M5) don't expose process metrics via the API
     const activeClusters = clusters.filter(c => !c.paused && c.stateName === 'IDLE')
     for (const cluster of activeClusters) {
       try {
         const project = projectsToFetch.find(p => p.id === cluster.projectId)
+
+        // Skip metrics for shared tier clusters (they don't have process-level metrics)
+        const instanceSize = cluster.providerSettings?.instanceSizeName || ''
+        const isSharedTier = instanceSize.startsWith('M0') || instanceSize.startsWith('M2') || instanceSize.startsWith('M5')
+        if (isSharedTier) {
+          // Add basic info without metrics for shared clusters
+          clusterMetrics.push({
+            clusterName: cluster.name,
+            projectName: project?.name || cluster.projectId,
+            projectId: cluster.projectId,
+            diskUsedGB: undefined,
+            diskFreeGB: undefined,
+            diskTotalGB: undefined,
+            connections: undefined,
+            measurements: [],
+          })
+          continue
+        }
 
         const processesResponse = await mongoAtlasAdminFetch<{
           results: Array<{
