@@ -77,7 +77,7 @@ export default function ContactPage() {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">
-            <i className="fas fa-envelope text-primary-400 mr-3" />
+            <i className="fas fa-envelope text-primary-400 mr-3" aria-hidden="true" />
             Contact Us
           </h1>
           <p className="text-gray-400 text-lg">
@@ -89,7 +89,7 @@ export default function ContactPage() {
           <div className="space-y-6">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="name" className="block text-base font-medium text-gray-300 mb-2">
                 Your Name
               </label>
               <input
@@ -105,7 +105,7 @@ export default function ContactPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-base font-medium text-gray-300 mb-2">
                 Email Address
               </label>
               <input
@@ -121,7 +121,7 @@ export default function ContactPage() {
 
             {/* Reason */}
             <div>
-              <label htmlFor="reason" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="reason" className="block text-base font-medium text-gray-300 mb-2">
                 Reason for Contact
               </label>
               <select
@@ -146,7 +146,7 @@ export default function ContactPage() {
 
             {/* Message */}
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="message" className="block text-base font-medium text-gray-300 mb-2">
                 Message
               </label>
               <textarea

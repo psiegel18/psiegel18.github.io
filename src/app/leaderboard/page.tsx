@@ -63,7 +63,7 @@ export default function LeaderboardPage() {
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8">
-          <i className="fas fa-trophy text-yellow-400 mr-3" />
+          <i className="fas fa-trophy text-yellow-400 mr-3" aria-hidden="true" />
           Global Leaderboard
         </h1>
 
@@ -93,7 +93,7 @@ export default function LeaderboardPage() {
             </div>
           ) : scores.length === 0 ? (
             <div className="p-8 text-center">
-              <i className="fas fa-gamepad text-4xl text-gray-600 mb-4" />
+              <i className="fas fa-gamepad text-4xl text-gray-600 mb-4" aria-hidden="true" />
               <p className="text-gray-400">No scores yet. Be the first to play!</p>
               <div className="mt-4 flex gap-4 justify-center">
                 <Link href="/games/snake" className="btn-primary">
@@ -131,13 +131,14 @@ export default function LeaderboardPage() {
                         {score.user.image ? (
                           <Image
                             src={score.user.image}
-                            alt={score.user.name || 'User'}
+                            alt=""
                             width={32}
                             height={32}
                             className="rounded-full"
+                            aria-hidden="true"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-sm">
+                          <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-sm" aria-hidden="true">
                             {score.user.name?.[0]?.toUpperCase() || 'G'}
                           </div>
                         )}
@@ -187,11 +188,11 @@ export default function LeaderboardPage() {
           <p className="text-gray-400 mb-4">Want to climb the leaderboard?</p>
           <div className="flex gap-4 justify-center">
             <Link href="/games/snake" className="btn-primary">
-              <i className="fas fa-gamepad mr-2" />
+              <i className="fas fa-gamepad mr-2" aria-hidden="true" />
               Play Snake
             </Link>
             <Link href="/games/tetris" className="btn-secondary">
-              <i className="fas fa-th-large mr-2" />
+              <i className="fas fa-th-large mr-2" aria-hidden="true" />
               Play Tetris
             </Link>
           </div>

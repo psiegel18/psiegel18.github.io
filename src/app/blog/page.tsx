@@ -65,7 +65,7 @@ export default function BlogPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold mb-4">
-            <i className="fas fa-blog text-primary-400 mr-3" />
+            <i className="fas fa-blog text-primary-400 mr-3" aria-hidden="true" />
             Blog
           </h1>
           <p className="text-gray-400 text-lg">
@@ -75,7 +75,7 @@ export default function BlogPage() {
 
         {posts.length === 0 ? (
           <div className="text-center py-16">
-            <i className="fas fa-newspaper text-6xl text-gray-600 mb-4" />
+            <i className="fas fa-newspaper text-6xl text-gray-600 mb-4" aria-hidden="true" />
             <p className="text-gray-400 text-lg">No posts yet. Check back soon!</p>
           </div>
         ) : (
@@ -92,6 +92,8 @@ export default function BlogPage() {
                           width={192}
                           height={128}
                           className="rounded-lg w-full h-auto group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 768px) 100vw, 192px"
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -107,13 +109,14 @@ export default function BlogPage() {
                           {post.author.image ? (
                             <Image
                               src={post.author.image}
-                              alt={post.author.name || 'Author'}
+                              alt=""
                               width={24}
                               height={24}
                               className="rounded-full"
+                              aria-hidden="true"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center" aria-hidden="true">
                               <span className="text-xs text-primary-400">
                                 {post.author.name?.[0]?.toUpperCase() || '?'}
                               </span>
@@ -122,11 +125,11 @@ export default function BlogPage() {
                           <span>{post.author.name || 'Anonymous'}</span>
                         </div>
                         <span>
-                          <i className="far fa-calendar mr-1" />
+                          <i className="far fa-calendar mr-1" aria-hidden="true" />
                           {formatDate(post.createdAt)}
                         </span>
                         <span>
-                          <i className="far fa-comment mr-1" />
+                          <i className="far fa-comment mr-1" aria-hidden="true" />
                           {post._count.comments} {post._count.comments === 1 ? 'comment' : 'comments'}
                         </span>
                       </div>

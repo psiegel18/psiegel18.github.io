@@ -79,6 +79,20 @@ export default function TetrisPage() {
     canvas.height = blockSizeRef.current * BOARD_HEIGHT
   }, [])
 
+  // Draw start screen - defined before useEffect that uses it
+  const drawStartScreen = useCallback(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#fff'
+    ctx.font = '20px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(isMobile ? 'Tap START below' : 'Press SPACE to start', canvas.width / 2, canvas.height / 2)
+  }, [isMobile])
+
   useEffect(() => {
     resizeCanvas()
     initBoard()
@@ -166,19 +180,6 @@ export default function TetrisPage() {
       }
     }
   }, [])
-
-  const drawStartScreen = useCallback(() => {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-
-    ctx.fillStyle = '#000'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = '#fff'
-    ctx.font = '20px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(isMobile ? 'Tap START below' : 'Press SPACE to start', canvas.width / 2, canvas.height / 2)
-  }, [isMobile])
 
   // Generate next piece
   const generateNextPiece = useCallback(() => {

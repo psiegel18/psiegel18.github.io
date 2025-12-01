@@ -303,31 +303,35 @@ export default function SnakePage() {
 
             {/* Mobile Controls */}
             {isMobile && gameState === 'playing' && (
-              <div className="mt-4 flex flex-col items-center">
+              <div className="mt-4 flex flex-col items-center" role="group" aria-label="Game controls">
                 <button
                   onClick={() => handleDirection('up')}
                   className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl mb-1"
+                  aria-label="Move up"
                 >
-                  <i className="fas fa-arrow-up" />
+                  <i className="fas fa-arrow-up" aria-hidden="true" />
                 </button>
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleDirection('left')}
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Move left"
                   >
-                    <i className="fas fa-arrow-left" />
+                    <i className="fas fa-arrow-left" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => handleDirection('down')}
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Move down"
                   >
-                    <i className="fas fa-arrow-down" />
+                    <i className="fas fa-arrow-down" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => handleDirection('right')}
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Move right"
                   >
-                    <i className="fas fa-arrow-right" />
+                    <i className="fas fa-arrow-right" aria-hidden="true" />
                   </button>
                 </div>
               </div>
