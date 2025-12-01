@@ -202,6 +202,14 @@ export async function GET() {
         standardSrv?: string
       }
       createDate: string
+      // Additional fields
+      backupEnabled?: boolean
+      pitEnabled?: boolean
+      terminationProtectionEnabled?: boolean
+      encryptionAtRestProvider?: string
+      labels?: Array<{ key: string; value: string }>
+      tags?: Array<{ key: string; value: string }>
+      versionReleaseSystem?: string
     }> = []
 
     // Fetch from all projects (no limit) to ensure we get all clusters
@@ -229,6 +237,13 @@ export async function GET() {
               standardSrv?: string
             }
             createDate: string
+            // Additional fields
+            backupEnabled?: boolean
+            pitEnabled?: boolean
+            terminationProtectionEnabled?: boolean
+            encryptionAtRestProvider?: string
+            labels?: Array<{ key: string; value: string }>
+            versionReleaseSystem?: string
           }>
         }>(`/groups/${project.id}/clusters`, publicKey, privateKey)
 
@@ -237,6 +252,7 @@ export async function GET() {
             ...cluster,
             projectId: project.id,
             projectName: project.name,
+            tags: cluster.labels, // Map labels to tags for consistency
           })
         }
       } catch (e) {
@@ -260,13 +276,19 @@ export async function GET() {
               providerName: string
               regionName: string
               backingProviderName?: string
+              diskSizeGB?: number
             }
             connectionStrings?: {
               standardSrv?: string
+              standard?: string
             }
             createDate: string
             terminationProtectionEnabled?: boolean
             tags?: Array<{ key: string; value: string }>
+            backupSettings?: {
+              enabled: boolean
+            }
+            versionReleaseSystem?: string
           }>
         }>(`/groups/${project.id}/flexClusters`, publicKey, privateKey, 'v2')
 
@@ -287,7 +309,7 @@ export async function GET() {
             mongoDBVersion: flexCluster.mongoDBVersion,
             stateName: flexCluster.stateName,
             paused: false, // Flex clusters don't have pause functionality
-            diskSizeGB: 0, // Flex clusters have auto-scaling storage
+            diskSizeGB: flexCluster.providerSettings?.diskSizeGB || 0, // Flex clusters have auto-scaling storage
             replicationFactor: 3, // Flex clusters are always 3-node
             numShards: 1,
             providerSettings: {
@@ -297,6 +319,11 @@ export async function GET() {
             },
             connectionStrings: flexCluster.connectionStrings,
             createDate: flexCluster.createDate,
+            // Additional Flex-specific fields
+            backupEnabled: flexCluster.backupSettings?.enabled,
+            terminationProtectionEnabled: flexCluster.terminationProtectionEnabled,
+            tags: flexCluster.tags,
+            versionReleaseSystem: flexCluster.versionReleaseSystem,
           })
         }
       } catch (e) {
@@ -383,7 +410,7 @@ export async function GET() {
       }
     }
 
-    // Fetch process metrics and disk usage for clusters
+    // Fetch process metrics, disk usage, and database info for clusters
     let clusterMetrics: Array<{
       clusterName: string
       projectName: string
@@ -397,6 +424,12 @@ export async function GET() {
         units: string
         dataPoints: Array<{ timestamp: string; value: number }>
       }>
+      databases?: Array<{
+        databaseName: string
+        sizeOnDisk?: number
+      }>
+      totalDatabases?: number
+      totalDataSizeGB?: number
     }> = []
 
     // Fetch metrics for all active (non-paused) dedicated clusters
@@ -412,6 +445,30 @@ export async function GET() {
         const isFlexCluster = instanceSize === 'FLEX' || cluster.clusterType === 'FLEX'
         if (isSharedTier || isFlexCluster) {
           // Add basic info without metrics for shared/flex clusters
+          // Try to get database info using v2 API for Flex clusters
+          let databases: Array<{ databaseName: string; sizeOnDisk?: number }> = []
+
+          if (isFlexCluster) {
+            try {
+              // Flex clusters might support database listing via v2 API
+              const processesResponse = await mongoAtlasAdminFetch<{
+                results: Array<{ id: string; hostname: string; processType: string }>
+              }>(`/groups/${cluster.projectId}/processes`, publicKey, privateKey, 'v2')
+
+              if (processesResponse.results && processesResponse.results.length > 0) {
+                const processId = processesResponse.results[0].id || processesResponse.results[0].hostname
+                const dbResponse = await mongoAtlasAdminFetch<{
+                  results?: Array<{ databaseName: string; sizeOnDisk?: number }>
+                }>(`/groups/${cluster.projectId}/processes/${processId}/databases`, publicKey, privateKey, 'v2')
+                databases = dbResponse.results || []
+              }
+            } catch (dbError) {
+              console.log(`Could not fetch databases for Flex cluster ${cluster.name}:`, dbError instanceof Error ? dbError.message : dbError)
+            }
+          }
+
+          const totalDataSize = databases.reduce((sum, db) => sum + (db.sizeOnDisk || 0), 0)
+
           clusterMetrics.push({
             clusterName: cluster.name,
             projectName: project?.name || cluster.projectId,
@@ -421,6 +478,9 @@ export async function GET() {
             diskTotalGB: undefined,
             connections: undefined,
             measurements: [],
+            databases: databases.length > 0 ? databases : undefined,
+            totalDatabases: databases.length > 0 ? databases.length : undefined,
+            totalDataSizeGB: totalDataSize > 0 ? totalDataSize / (1024 * 1024 * 1024) : undefined,
           })
           continue
         }
@@ -428,12 +488,14 @@ export async function GET() {
         const processesResponse = await mongoAtlasAdminFetch<{
           results: Array<{
             hostname: string
+            id?: string
             processType: string
           }>
         }>(`/groups/${cluster.projectId}/processes`, publicKey, privateKey)
 
         if (processesResponse.results && processesResponse.results.length > 0) {
           const hostname = processesResponse.results[0].hostname
+          const processId = processesResponse.results[0].id || hostname
 
           // Fetch comprehensive metrics including disk usage
           const metricsResponse = await mongoAtlasAdminFetch<{
@@ -443,6 +505,17 @@ export async function GET() {
               dataPoints: Array<{ timestamp: string; value: number }>
             }>
           }>(`/groups/${cluster.projectId}/processes/${hostname}/measurements?granularity=PT1M&period=PT1H&m=CONNECTIONS&m=OPCOUNTER_CMD&m=OPCOUNTER_QUERY&m=OPCOUNTER_INSERT&m=OPCOUNTER_UPDATE&m=OPCOUNTER_DELETE&m=DISK_PARTITION_SPACE_USED&m=DISK_PARTITION_SPACE_FREE&m=SYSTEM_MEMORY_USED&m=SYSTEM_MEMORY_FREE`, publicKey, privateKey)
+
+          // Fetch database list for the cluster
+          let databases: Array<{ databaseName: string; sizeOnDisk?: number }> = []
+          try {
+            const dbResponse = await mongoAtlasAdminFetch<{
+              results?: Array<{ databaseName: string; sizeOnDisk?: number }>
+            }>(`/groups/${cluster.projectId}/processes/${processId}/databases`, publicKey, privateKey)
+            databases = dbResponse.results || []
+          } catch (dbError) {
+            console.log(`Could not fetch databases for cluster ${cluster.name}:`, dbError instanceof Error ? dbError.message : dbError)
+          }
 
           // Extract latest disk usage values
           const measurements = metricsResponse.measurements || []
@@ -457,6 +530,7 @@ export async function GET() {
           const diskUsed = getLatestValue('DISK_PARTITION_SPACE_USED')
           const diskFree = getLatestValue('DISK_PARTITION_SPACE_FREE')
           const connections = getLatestValue('CONNECTIONS')
+          const totalDataSize = databases.reduce((sum, db) => sum + (db.sizeOnDisk || 0), 0)
 
           clusterMetrics.push({
             clusterName: cluster.name,
@@ -467,6 +541,9 @@ export async function GET() {
             diskTotalGB: diskUsed && diskFree ? (diskUsed + diskFree) / (1024 * 1024 * 1024) : undefined,
             connections,
             measurements,
+            databases: databases.length > 0 ? databases : undefined,
+            totalDatabases: databases.length > 0 ? databases.length : undefined,
+            totalDataSizeGB: totalDataSize > 0 ? totalDataSize / (1024 * 1024 * 1024) : undefined,
           })
         }
       } catch (e) {
@@ -520,6 +597,13 @@ export async function GET() {
         instanceSize: c.providerSettings?.instanceSizeName,
         connectionString: c.connectionStrings?.standardSrv,
         created: c.createDate,
+        // Additional fields
+        backupEnabled: c.backupEnabled,
+        pitEnabled: c.pitEnabled,
+        terminationProtectionEnabled: c.terminationProtectionEnabled,
+        encryptionAtRestProvider: c.encryptionAtRestProvider,
+        tags: c.tags || c.labels,
+        versionReleaseSystem: c.versionReleaseSystem,
       })),
       databaseUsers: databaseUsers.map(u => ({
         username: u.username,
