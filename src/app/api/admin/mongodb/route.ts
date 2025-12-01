@@ -40,12 +40,17 @@ async function mongoAtlasAdminFetch<T>(
   const url = `${baseUrl}${endpoint}`
   const method = 'GET'
 
+  // v2 API requires a versioned Accept header
+  const acceptHeader = apiVersion === 'v2'
+    ? 'application/vnd.atlas.2024-11-13+json'
+    : 'application/json'
+
   // Step 1: Make initial request to get WWW-Authenticate header
   const initialResponse = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      'Accept': acceptHeader,
     },
   })
 
@@ -103,7 +108,7 @@ async function mongoAtlasAdminFetch<T>(
     headers: {
       'Authorization': authHeader,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      'Accept': acceptHeader,
     },
   })
 
@@ -243,6 +248,7 @@ export async function GET() {
     // Flex clusters are a newer deployment type that uses a different API endpoint
     for (const project of projectsToFetch) {
       try {
+        console.log(`Fetching Flex clusters for project ${project.id} (${project.name})...`)
         const flexClustersResponse = await mongoAtlasAdminFetch<{
           results?: Array<{
             id: string
@@ -264,7 +270,13 @@ export async function GET() {
           }>
         }>(`/groups/${project.id}/flexClusters`, publicKey, privateKey, 'v2')
 
-        for (const flexCluster of flexClustersResponse.results || []) {
+        console.log(`Flex clusters response for ${project.name}:`, JSON.stringify(flexClustersResponse, null, 2))
+
+        const flexResults = flexClustersResponse.results || []
+        console.log(`Found ${flexResults.length} Flex clusters in project ${project.name}`)
+
+        for (const flexCluster of flexResults) {
+          console.log(`Adding Flex cluster: ${flexCluster.name}`)
           // Map Flex cluster to match the regular cluster structure
           clusters.push({
             id: flexCluster.id,
@@ -290,6 +302,7 @@ export async function GET() {
       } catch (e) {
         // Flex clusters API might return 404 if no flex clusters exist, which is fine
         const errorMessage = e instanceof Error ? e.message : String(e)
+        console.log(`Flex clusters API error for project ${project.id}: ${errorMessage}`)
         if (!errorMessage.includes('404')) {
           console.error(`Failed to fetch Flex clusters for project ${project.id}:`, e)
         }
