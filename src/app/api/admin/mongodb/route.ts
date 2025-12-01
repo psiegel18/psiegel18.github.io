@@ -451,16 +451,25 @@ export async function GET() {
           if (isFlexCluster) {
             try {
               // Flex clusters might support database listing via v2 API
+              console.log(`Attempting to fetch processes for Flex cluster ${cluster.name} in project ${cluster.projectId}...`)
               const processesResponse = await mongoAtlasAdminFetch<{
                 results: Array<{ id: string; hostname: string; processType: string }>
               }>(`/groups/${cluster.projectId}/processes`, publicKey, privateKey, 'v2')
 
+              console.log(`Processes response for Flex cluster ${cluster.name}:`, JSON.stringify(processesResponse, null, 2))
+
               if (processesResponse.results && processesResponse.results.length > 0) {
                 const processId = processesResponse.results[0].id || processesResponse.results[0].hostname
+                console.log(`Using processId: ${processId} for database listing`)
+
                 const dbResponse = await mongoAtlasAdminFetch<{
                   results?: Array<{ databaseName: string; sizeOnDisk?: number }>
                 }>(`/groups/${cluster.projectId}/processes/${processId}/databases`, publicKey, privateKey, 'v2')
+
+                console.log(`Databases response for Flex cluster ${cluster.name}:`, JSON.stringify(dbResponse, null, 2))
                 databases = dbResponse.results || []
+              } else {
+                console.log(`No processes found for Flex cluster ${cluster.name}`)
               }
             } catch (dbError) {
               console.log(`Could not fetch databases for Flex cluster ${cluster.name}:`, dbError instanceof Error ? dbError.message : dbError)
