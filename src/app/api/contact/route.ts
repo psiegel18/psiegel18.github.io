@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 
-const ADMIN_EMAIL = 'admin@psiegel.org'
-const HELP_EMAIL = 'help@psiegel.org'
+// Parse comma-separated email list from environment variable
+function parseEmailList(envVar: string | undefined, fallback: string): string[] {
+  const emails = envVar || fallback
+  return emails.split(',').map(e => e.trim()).filter(e => e.length > 0)
+}
 
 export async function POST(request: Request) {
   try {
@@ -32,8 +35,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Determine recipient based on reason
-    const recipient = reason === 'site-issue' ? HELP_EMAIL : ADMIN_EMAIL
+    // Get email configuration from environment variables
+    const senderEmail = process.env.SEND_EMAIL || 'admin@psiegel.org'
+    const generalRecipients = parseEmailList(process.env.EMAIL, 'admin@psiegel.org')
+    const helpdeskRecipients = parseEmailList(process.env.HELPDESK_EMAIL, 'help@psiegel.org')
+
+    // Determine recipients based on reason
+    const recipients = reason === 'site-issue' ? helpdeskRecipients : generalRecipients
 
     // Prepare email content
     const reasonLabels: Record<string, string> = {
@@ -68,8 +76,8 @@ This message was sent from the contact form at psiegel.org
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Psiegel.org <noreply@psiegel.org>',
-          to: recipient,
+          from: `Psiegel.org <${senderEmail}>`,
+          to: recipients,
           reply_to: email,
           subject,
           text: body,
@@ -86,7 +94,7 @@ This message was sent from the contact form at psiegel.org
     } else {
       // Log the message if no email service is configured
       console.log('Contact form submission (no email service configured):')
-      console.log('To:', recipient)
+      console.log('To:', recipients.join(', '))
       console.log('Subject:', subject)
       console.log('Body:', body)
     }

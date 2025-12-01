@@ -72,6 +72,15 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.APPLE_CLIENT_ID!,
       clientSecret: process.env.APPLE_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          scope: "openid email name",
+          response_mode: "form_post",
+          response_type: "code id_token",
+        },
+      },
+      // Use state-based CSRF protection only (Apple's form_post returns id_token in authorization response)
+      checks: ["state"],
     }),
   ],
   callbacks: {
@@ -163,6 +172,38 @@ export const authOptions: NextAuthOptions = {
         secure: process.env.NODE_ENV === 'production',
         // Allow cookies across all subdomains in production
         domain: process.env.NODE_ENV === 'production' ? '.psiegel.org' : undefined,
+      },
+    },
+    // PKCE code_verifier cookie - needs sameSite: 'none' for Apple's form_post callback
+    pkceCodeVerifier: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.pkce.code_verifier' : 'next-auth.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'none', // Required for cross-site POST from Apple
+        path: '/',
+        secure: true, // Must be secure when sameSite is 'none'
+        maxAge: 60 * 15, // 15 minutes
+      },
+    },
+    // State cookie for OAuth - also needs sameSite: 'none' for form_post
+    state: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.state' : 'next-auth.state',
+      options: {
+        httpOnly: true,
+        sameSite: 'none', // Required for cross-site POST from Apple
+        path: '/',
+        secure: true, // Must be secure when sameSite is 'none'
+        maxAge: 60 * 15, // 15 minutes
+      },
+    },
+    // Callback URL cookie
+    callbackUrl: {
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.callback-url' : 'next-auth.callback-url',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
       },
     },
   },

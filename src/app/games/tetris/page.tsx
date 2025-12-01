@@ -34,6 +34,15 @@ export default function TetrisPage() {
   const [topScores, setTopScores] = useState<{ name: string; score: number }[]>([])
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'paused' | 'gameover'>('idle')
   const [playerName, setPlayerName] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
+    }
+    checkMobile()
+  }, [])
 
   // Game state refs
   const boardRef = useRef<(string | 0)[][]>([])
@@ -70,13 +79,27 @@ export default function TetrisPage() {
     canvas.height = blockSizeRef.current * BOARD_HEIGHT
   }, [])
 
+  // Draw start screen - defined before useEffect that uses it
+  const drawStartScreen = useCallback(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#fff'
+    ctx.font = '20px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(isMobile ? 'Tap START below' : 'Press SPACE to start', canvas.width / 2, canvas.height / 2)
+  }, [isMobile])
+
   useEffect(() => {
     resizeCanvas()
     initBoard()
     drawStartScreen()
     window.addEventListener('resize', resizeCanvas)
     return () => window.removeEventListener('resize', resizeCanvas)
-  }, [resizeCanvas, initBoard])
+  }, [resizeCanvas, initBoard, drawStartScreen])
 
   // Draw functions
   const drawBoard = useCallback(() => {
@@ -156,19 +179,6 @@ export default function TetrisPage() {
         }
       }
     }
-  }, [])
-
-  const drawStartScreen = useCallback(() => {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-
-    ctx.fillStyle = '#000'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = '#fff'
-    ctx.font = '20px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText('Press SPACE to start', canvas.width / 2, canvas.height / 2)
   }, [])
 
   // Generate next piece
@@ -399,6 +409,61 @@ export default function TetrisPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [gameState, startGame, endGame, togglePause, canMove, rotate, drawBoard])
 
+  // Touch swipe controls
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || gameState !== 'playing') return
+
+    const piece = currentPieceRef.current
+    if (!piece) return
+
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y
+    const minSwipe = 30
+
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > minSwipe) {
+      // Horizontal swipe
+      if (dx > 0 && canMove(1, 0)) piece.x++
+      else if (dx < 0 && canMove(-1, 0)) piece.x--
+    } else if (Math.abs(dy) > minSwipe) {
+      // Vertical swipe
+      if (dy > 0 && canMove(0, 1)) piece.y++ // Down
+      else if (dy < 0) rotate() // Up = rotate
+    }
+    drawBoard()
+  }
+
+  // Mobile button controls
+  const handleMobileMove = (direction: 'left' | 'right' | 'down' | 'rotate') => {
+    if (gameState !== 'playing') return
+    const piece = currentPieceRef.current
+    if (!piece) return
+
+    switch (direction) {
+      case 'left':
+        if (canMove(-1, 0)) piece.x--
+        break
+      case 'right':
+        if (canMove(1, 0)) piece.x++
+        break
+      case 'down':
+        if (canMove(0, 1)) piece.y++
+        break
+      case 'rotate':
+        rotate()
+        break
+    }
+    drawBoard()
+  }
+
   // Handle game over submission
   const handlePlayAgain = () => {
     if (playerName.trim()) {
@@ -438,13 +503,25 @@ export default function TetrisPage() {
 
             <h2 className="text-xl font-semibold mb-3">Instructions</h2>
             <ul className="text-gray-400 text-sm space-y-1 mb-4">
-              <li><strong>Space:</strong> Start game</li>
-              <li><strong>Left Arrow:</strong> Move left</li>
-              <li><strong>Right Arrow:</strong> Move right</li>
-              <li><strong>Down Arrow:</strong> Move down</li>
-              <li><strong>Up Arrow:</strong> Rotate</li>
-              <li><strong>P:</strong> Pause/Resume</li>
-              <li><strong>Q:</strong> Quit game</li>
+              {isMobile ? (
+                <>
+                  <li><strong>Tap Start:</strong> Begin game</li>
+                  <li><strong>Buttons:</strong> Move &amp; rotate</li>
+                  <li><strong>Swipe Left/Right:</strong> Move piece</li>
+                  <li><strong>Swipe Down:</strong> Drop faster</li>
+                  <li><strong>Swipe Up:</strong> Rotate</li>
+                </>
+              ) : (
+                <>
+                  <li><strong>Space:</strong> Start game</li>
+                  <li><strong>Left Arrow:</strong> Move left</li>
+                  <li><strong>Right Arrow:</strong> Move right</li>
+                  <li><strong>Down Arrow:</strong> Move down</li>
+                  <li><strong>Up Arrow:</strong> Rotate</li>
+                  <li><strong>P:</strong> Pause/Resume</li>
+                  <li><strong>Q:</strong> Quit game</li>
+                </>
+              )}
             </ul>
 
             <div className="mb-4">
@@ -472,15 +549,104 @@ export default function TetrisPage() {
 
             <div className="mt-4 pt-4 border-t border-dark-100/50">
               <Link href="/leaderboard" className="text-primary-400 hover:text-primary-300 text-sm">
-                <i className="fas fa-trophy mr-2" />
+                <i className="fas fa-trophy mr-2" aria-hidden="true" />
                 View Global Leaderboard
               </Link>
             </div>
           </div>
 
           {/* Game Area */}
-          <div className="order-1 lg:order-2">
+          <div
+            className="order-1 lg:order-2"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <canvas ref={canvasRef} className="game-canvas" />
+
+            {/* Mobile Start Button */}
+            {isMobile && gameState === 'idle' && (
+              <button
+                onClick={startGame}
+                className="w-full mt-4 btn-primary py-4 text-lg"
+              >
+                <i className="fas fa-play mr-2" aria-hidden="true" />
+                Tap to Start
+              </button>
+            )}
+
+            {/* Mobile Controls */}
+            {isMobile && gameState === 'playing' && (
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleMobileMove('rotate')}
+                    className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Rotate piece"
+                  >
+                    <i className="fas fa-rotate-right" aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleMobileMove('left')}
+                    className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Move left"
+                  >
+                    <i className="fas fa-arrow-left" aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => handleMobileMove('down')}
+                    className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Move down"
+                  >
+                    <i className="fas fa-arrow-down" aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => handleMobileMove('right')}
+                    className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
+                    aria-label="Move right"
+                  >
+                    <i className="fas fa-arrow-right" aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={togglePause}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm"
+                  >
+                    <i className="fas fa-pause mr-1" aria-hidden="true" />
+                    Pause
+                  </button>
+                  <button
+                    onClick={endGame}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm"
+                  >
+                    <i className="fas fa-stop mr-1" aria-hidden="true" />
+                    Quit
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Paused Controls */}
+            {isMobile && gameState === 'paused' && (
+              <div className="mt-4 flex justify-center gap-2">
+                <button
+                  onClick={togglePause}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg"
+                >
+                  <i className="fas fa-play mr-2" aria-hidden="true" />
+                  Resume
+                </button>
+                <button
+                  onClick={endGame}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg"
+                >
+                  <i className="fas fa-stop mr-2" aria-hidden="true" />
+                  Quit
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
