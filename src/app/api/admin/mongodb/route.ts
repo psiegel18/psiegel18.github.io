@@ -1,37 +1,115 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
-
-// MongoDB Atlas Data API
-const MONGODB_DATA_API_BASE = 'https://data.mongodb-api.com/app'
 
 // MongoDB Atlas Admin API
 const MONGODB_ADMIN_API_BASE = 'https://cloud.mongodb.com/api/atlas/v1.0'
 
+// Parse WWW-Authenticate header for digest auth
+function parseDigestHeader(header: string): Record<string, string> {
+  const result: Record<string, string> = {}
+  const parts = header.replace('Digest ', '').split(',')
+
+  for (const part of parts) {
+    const match = part.trim().match(/^(\w+)=(?:"([^"]+)"|([^\s,]+))/)
+    if (match) {
+      result[match[1]] = match[2] || match[3]
+    }
+  }
+
+  return result
+}
+
+// Generate MD5 hash
+function md5(str: string): string {
+  return crypto.createHash('md5').update(str).digest('hex')
+}
+
+// Perform digest authentication for MongoDB Atlas Admin API
 async function mongoAtlasAdminFetch<T>(
   endpoint: string,
   publicKey: string,
   privateKey: string
 ): Promise<T> {
-  // Atlas Admin API uses digest auth, but we'll use the simpler API key approach
-  const auth = Buffer.from(`${publicKey}:${privateKey}`).toString('base64')
+  const url = `${MONGODB_ADMIN_API_BASE}${endpoint}`
+  const method = 'GET'
 
-  const response = await fetch(`${MONGODB_ADMIN_API_BASE}${endpoint}`, {
+  // Step 1: Make initial request to get WWW-Authenticate header
+  const initialResponse = await fetch(url, {
+    method,
     headers: {
-      'Authorization': `Basic ${auth}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`MongoDB Atlas API error: ${response.status} ${response.statusText} - ${text}`)
+  if (initialResponse.status !== 401) {
+    // If not 401, either it's an error or no auth needed
+    if (!initialResponse.ok) {
+      const text = await initialResponse.text()
+      throw new Error(`MongoDB Atlas API error: ${initialResponse.status} ${initialResponse.statusText} - ${text}`)
+    }
+    return initialResponse.json()
   }
 
-  return response.json()
+  // Step 2: Parse the WWW-Authenticate header
+  const wwwAuth = initialResponse.headers.get('WWW-Authenticate')
+  if (!wwwAuth || !wwwAuth.startsWith('Digest')) {
+    throw new Error('MongoDB Atlas API did not return Digest authentication challenge')
+  }
+
+  const digestParams = parseDigestHeader(wwwAuth)
+  const { realm, nonce, qop } = digestParams
+
+  if (!realm || !nonce) {
+    throw new Error('Missing required digest parameters from MongoDB Atlas')
+  }
+
+  // Step 3: Calculate digest response
+  const uri = new URL(url).pathname + (new URL(url).search || '')
+  const nc = '00000001'
+  const cnonce = crypto.randomBytes(8).toString('hex')
+
+  // HA1 = MD5(username:realm:password)
+  const ha1 = md5(`${publicKey}:${realm}:${privateKey}`)
+
+  // HA2 = MD5(method:uri)
+  const ha2 = md5(`${method}:${uri}`)
+
+  // Response = MD5(HA1:nonce:nc:cnonce:qop:HA2) for qop=auth
+  let response: string
+  if (qop) {
+    response = md5(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
+  } else {
+    response = md5(`${ha1}:${nonce}:${ha2}`)
+  }
+
+  // Step 4: Build Authorization header
+  let authHeader = `Digest username="${publicKey}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${response}"`
+
+  if (qop) {
+    authHeader += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"`
+  }
+
+  // Step 5: Make authenticated request
+  const authResponse = await fetch(url, {
+    method,
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  })
+
+  if (!authResponse.ok) {
+    const text = await authResponse.text()
+    throw new Error(`MongoDB Atlas API error: ${authResponse.status} ${authResponse.statusText} - ${text}`)
+  }
+
+  return authResponse.json()
 }
 
 export async function GET() {
