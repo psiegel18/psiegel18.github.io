@@ -655,7 +655,7 @@ const tabs: { id: TabId; title: string; icon: string; iconColor: string }[] = [
 
 const infraTabs: { id: InfraTabId; title: string; icon: string; iconColor: string }[] = [
   { id: 'cloudflare', title: 'Cloudflare', icon: 'fas fa-cloud', iconColor: 'text-orange-500' },
-  { id: 'vercel', title: 'Vercel', icon: 'fas fa-triangle', iconColor: 'text-white' },
+  { id: 'vercel', title: 'Vercel', icon: 'fas fa-rocket', iconColor: 'text-white' },
   { id: 'neon', title: 'Neon', icon: 'fas fa-database', iconColor: 'text-green-400' },
   { id: 'mongodb', title: 'MongoDB', icon: 'fas fa-leaf', iconColor: 'text-green-500' },
   { id: 'r2', title: 'R2 Storage', icon: 'fas fa-hdd', iconColor: 'text-orange-400' },
@@ -2127,7 +2127,7 @@ export default function AdminPage() {
         <div className="card p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">
-              <i className="fas fa-triangle text-white mr-2" />
+              <i className="fas fa-rocket text-white mr-2" />
               Vercel
             </h2>
             <button

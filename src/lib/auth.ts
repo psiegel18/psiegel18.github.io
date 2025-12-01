@@ -72,6 +72,15 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.APPLE_CLIENT_ID!,
       clientSecret: process.env.APPLE_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          scope: "openid email name",
+          response_mode: "form_post",
+          response_type: "code id_token",
+        },
+      },
+      // Use state-based CSRF protection only (Apple's form_post returns id_token in authorization response)
+      checks: ["state"],
     }),
   ],
   callbacks: {
