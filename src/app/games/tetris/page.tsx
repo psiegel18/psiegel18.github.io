@@ -549,7 +549,7 @@ export default function TetrisPage() {
 
             <div className="mt-4 pt-4 border-t border-dark-100/50">
               <Link href="/leaderboard" className="text-primary-400 hover:text-primary-300 text-sm">
-                <i className="fas fa-trophy mr-2" />
+                <i className="fas fa-trophy mr-2" aria-hidden="true" />
                 View Global Leaderboard
               </Link>
             </div>
@@ -569,7 +569,7 @@ export default function TetrisPage() {
                 onClick={startGame}
                 className="w-full mt-4 btn-primary py-4 text-lg"
               >
-                <i className="fas fa-play mr-2" />
+                <i className="fas fa-play mr-2" aria-hidden="true" />
                 Tap to Start
               </button>
             )}
@@ -583,7 +583,7 @@ export default function TetrisPage() {
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
                     aria-label="Rotate piece"
                   >
-                    <i className="fas fa-rotate-right" />
+                    <i className="fas fa-rotate-right" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="flex gap-2">
@@ -592,21 +592,21 @@ export default function TetrisPage() {
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
                     aria-label="Move left"
                   >
-                    <i className="fas fa-arrow-left" />
+                    <i className="fas fa-arrow-left" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => handleMobileMove('down')}
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
                     aria-label="Move down"
                   >
-                    <i className="fas fa-arrow-down" />
+                    <i className="fas fa-arrow-down" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => handleMobileMove('right')}
                     className="w-14 h-14 bg-gradient-primary rounded-lg text-2xl"
                     aria-label="Move right"
                   >
-                    <i className="fas fa-arrow-right" />
+                    <i className="fas fa-arrow-right" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -614,14 +614,14 @@ export default function TetrisPage() {
                     onClick={togglePause}
                     className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm"
                   >
-                    <i className={`fas ${gameState === 'paused' ? 'fa-play' : 'fa-pause'} mr-1`} />
-                    {gameState === 'paused' ? 'Resume' : 'Pause'}
+                    <i className="fas fa-pause mr-1" aria-hidden="true" />
+                    Pause
                   </button>
                   <button
                     onClick={endGame}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm"
                   >
-                    <i className="fas fa-stop mr-1" />
+                    <i className="fas fa-stop mr-1" aria-hidden="true" />
                     Quit
                   </button>
                 </div>
@@ -635,14 +635,14 @@ export default function TetrisPage() {
                   onClick={togglePause}
                   className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg"
                 >
-                  <i className="fas fa-play mr-2" />
+                  <i className="fas fa-play mr-2" aria-hidden="true" />
                   Resume
                 </button>
                 <button
                   onClick={endGame}
                   className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg"
                 >
-                  <i className="fas fa-stop mr-2" />
+                  <i className="fas fa-stop mr-2" aria-hidden="true" />
                   Quit
                 </button>
               </div>
