@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 
 // MongoDB Atlas Admin API
 const MONGODB_ADMIN_API_BASE = 'https://cloud.mongodb.com/api/atlas/v1.0'
+const MONGODB_ADMIN_API_V2_BASE = 'https://cloud.mongodb.com/api/atlas/v2'
 
 // Parse WWW-Authenticate header for digest auth
 function parseDigestHeader(header: string): Record<string, string> {
@@ -32,9 +33,11 @@ function md5(str: string): string {
 async function mongoAtlasAdminFetch<T>(
   endpoint: string,
   publicKey: string,
-  privateKey: string
+  privateKey: string,
+  apiVersion: 'v1' | 'v2' = 'v1'
 ): Promise<T> {
-  const url = `${MONGODB_ADMIN_API_BASE}${endpoint}`
+  const baseUrl = apiVersion === 'v2' ? MONGODB_ADMIN_API_V2_BASE : MONGODB_ADMIN_API_BASE
+  const url = `${baseUrl}${endpoint}`
   const method = 'GET'
 
   // Step 1: Make initial request to get WWW-Authenticate header
@@ -236,6 +239,63 @@ export async function GET() {
       }
     }
 
+    // Fetch Flex clusters for each project (using v2 API)
+    // Flex clusters are a newer deployment type that uses a different API endpoint
+    for (const project of projectsToFetch) {
+      try {
+        const flexClustersResponse = await mongoAtlasAdminFetch<{
+          results?: Array<{
+            id: string
+            name: string
+            clusterType: string
+            mongoDBVersion: string
+            stateName: string
+            providerSettings: {
+              providerName: string
+              regionName: string
+              backingProviderName?: string
+            }
+            connectionStrings?: {
+              standardSrv?: string
+            }
+            createDate: string
+            terminationProtectionEnabled?: boolean
+            tags?: Array<{ key: string; value: string }>
+          }>
+        }>(`/groups/${project.id}/flexClusters`, publicKey, privateKey, 'v2')
+
+        for (const flexCluster of flexClustersResponse.results || []) {
+          // Map Flex cluster to match the regular cluster structure
+          clusters.push({
+            id: flexCluster.id,
+            name: flexCluster.name,
+            projectId: project.id,
+            projectName: project.name,
+            clusterType: 'FLEX', // Mark as Flex cluster
+            mongoDBVersion: flexCluster.mongoDBVersion,
+            stateName: flexCluster.stateName,
+            paused: false, // Flex clusters don't have pause functionality
+            diskSizeGB: 0, // Flex clusters have auto-scaling storage
+            replicationFactor: 3, // Flex clusters are always 3-node
+            numShards: 1,
+            providerSettings: {
+              providerName: flexCluster.providerSettings?.backingProviderName || flexCluster.providerSettings?.providerName || 'FLEX',
+              regionName: flexCluster.providerSettings?.regionName || '',
+              instanceSizeName: 'FLEX', // Mark as Flex instance
+            },
+            connectionStrings: flexCluster.connectionStrings,
+            createDate: flexCluster.createDate,
+          })
+        }
+      } catch (e) {
+        // Flex clusters API might return 404 if no flex clusters exist, which is fine
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        if (!errorMessage.includes('404')) {
+          console.error(`Failed to fetch Flex clusters for project ${project.id}:`, e)
+        }
+      }
+    }
+
     // Fetch database users for each project
     let databaseUsers: Array<{
       username: string
@@ -333,11 +393,12 @@ export async function GET() {
       try {
         const project = projectsToFetch.find(p => p.id === cluster.projectId)
 
-        // Skip metrics for shared tier clusters (they don't have process-level metrics)
+        // Skip metrics for shared tier and flex clusters (they don't have process-level metrics)
         const instanceSize = cluster.providerSettings?.instanceSizeName || ''
         const isSharedTier = instanceSize.startsWith('M0') || instanceSize.startsWith('M2') || instanceSize.startsWith('M5')
-        if (isSharedTier) {
-          // Add basic info without metrics for shared clusters
+        const isFlexCluster = instanceSize === 'FLEX' || cluster.clusterType === 'FLEX'
+        if (isSharedTier || isFlexCluster) {
+          // Add basic info without metrics for shared/flex clusters
           clusterMetrics.push({
             clusterName: cluster.name,
             projectName: project?.name || cluster.projectId,
