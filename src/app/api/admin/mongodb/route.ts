@@ -450,17 +450,46 @@ export async function GET() {
 
           if (isFlexCluster) {
             try {
+              // Extract hostnames from the cluster's connection string to filter processes
+              const connectionString = cluster.connectionStrings?.standardSrv || ''
+              // Extract the domain from the connection string (e.g., "thehouseonline.uwwfxme.mongodb.net" -> "uwwfxme.mongodb.net")
+              const srvMatch = connectionString.match(/mongodb\+srv:\/\/([^\/]+)/)
+              const clusterDomain = srvMatch ? srvMatch[1].split('.').slice(1).join('.') : ''
+              console.log(`Flex cluster ${cluster.name} domain from connection string: ${clusterDomain}`)
+
               // Flex clusters might support database listing via v2 API
+              console.log(`Attempting to fetch processes for Flex cluster ${cluster.name} in project ${cluster.projectId}...`)
               const processesResponse = await mongoAtlasAdminFetch<{
-                results: Array<{ id: string; hostname: string; processType: string }>
+                results: Array<{ id: string; hostname: string; userAlias?: string; processType: string; typeName?: string }>
               }>(`/groups/${cluster.projectId}/processes`, publicKey, privateKey, 'v2')
 
-              if (processesResponse.results && processesResponse.results.length > 0) {
-                const processId = processesResponse.results[0].id || processesResponse.results[0].hostname
+              console.log(`All processes in project:`, processesResponse.results?.map(p => ({ hostname: p.hostname, userAlias: p.userAlias, id: p.id })))
+
+              // Filter processes to only those belonging to this cluster
+              // Match by domain in hostname or userAlias
+              const clusterProcesses = processesResponse.results?.filter(p => {
+                const hostname = p.hostname || ''
+                const userAlias = p.userAlias || ''
+                // Check if the hostname or userAlias contains the cluster's domain
+                return (clusterDomain && (hostname.includes(clusterDomain) || userAlias.includes(clusterDomain)))
+              }) || []
+
+              console.log(`Filtered processes for Flex cluster ${cluster.name}:`, clusterProcesses.map(p => p.id))
+
+              if (clusterProcesses.length > 0) {
+                // Prefer the PRIMARY replica for database listing
+                const primaryProcess = clusterProcesses.find(p => p.typeName === 'REPLICA_PRIMARY') || clusterProcesses[0]
+                const processId = primaryProcess.id || primaryProcess.hostname
+                console.log(`Using processId: ${processId} for database listing (type: ${primaryProcess.typeName})`)
+
                 const dbResponse = await mongoAtlasAdminFetch<{
                   results?: Array<{ databaseName: string; sizeOnDisk?: number }>
                 }>(`/groups/${cluster.projectId}/processes/${processId}/databases`, publicKey, privateKey, 'v2')
+
+                console.log(`Databases response for Flex cluster ${cluster.name}:`, JSON.stringify(dbResponse, null, 2))
                 databases = dbResponse.results || []
+              } else {
+                console.log(`No matching processes found for Flex cluster ${cluster.name} (domain: ${clusterDomain})`)
               }
             } catch (dbError) {
               console.log(`Could not fetch databases for Flex cluster ${cluster.name}:`, dbError instanceof Error ? dbError.message : dbError)
