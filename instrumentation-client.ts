@@ -31,9 +31,22 @@ Sentry.init({
   // Integrations
   integrations: [
     Sentry.replayIntegration({
-      // Additional Replay configuration goes in here, for example:
-      maskAllText: true,
-      blockAllMedia: true,
+      // Disable blanket masking - this site has mostly public content
+      // Only mask elements explicitly marked as sensitive
+      maskAllText: false,
+      blockAllMedia: false,
+
+      // Still mask password inputs for safety
+      maskAllInputs: true,
+
+      // Explicitly mask elements with these selectors (add more as needed)
+      mask: ['.sentry-mask', '[data-sentry-mask]', '.sensitive', '[data-sensitive]'],
+
+      // Block specific elements if needed
+      block: ['.sentry-block', '[data-sentry-block]'],
+
+      // Ignore input events on these elements
+      ignore: ['.sentry-ignore', '[data-sentry-ignore]', 'input[type="password"]'],
     }),
     // Send console.log, console.warn, and console.error calls as logs to Sentry
     Sentry.consoleLoggingIntegration({ levels: ["warn", "error"] }),
