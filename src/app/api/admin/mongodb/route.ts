@@ -196,9 +196,8 @@ export async function GET() {
       createDate: string
     }> = []
 
-    const projectsToFetch = projectId
-      ? [{ id: projectId, name: projects.find(p => p.id === projectId)?.name || projectId }]
-      : projects.slice(0, 5) // Limit to 5 projects
+    // Fetch from all projects (no limit) to ensure we get all clusters
+    const projectsToFetch = projects.map(p => ({ id: p.id, name: p.name }))
 
     for (const project of projectsToFetch) {
       try {
@@ -311,10 +310,15 @@ export async function GET() {
       }
     }
 
-    // Fetch process metrics for clusters (recent performance data)
+    // Fetch process metrics and disk usage for clusters
     let clusterMetrics: Array<{
       clusterName: string
       projectName: string
+      projectId: string
+      diskUsedGB?: number
+      diskFreeGB?: number
+      diskTotalGB?: number
+      connections?: number
       measurements: Array<{
         name: string
         units: string
@@ -322,14 +326,11 @@ export async function GET() {
       }>
     }> = []
 
-    // Only fetch metrics for active (non-paused) clusters
+    // Fetch metrics for all active (non-paused) clusters
     const activeClusters = clusters.filter(c => !c.paused && c.stateName === 'IDLE')
-    for (const cluster of activeClusters.slice(0, 3)) { // Limit to 3 clusters for performance
+    for (const cluster of activeClusters) {
       try {
         const project = projectsToFetch.find(p => p.id === cluster.projectId)
-        // Get the last hour of metrics
-        const end = new Date()
-        const start = new Date(end.getTime() - 60 * 60 * 1000)
 
         const processesResponse = await mongoAtlasAdminFetch<{
           results: Array<{
@@ -341,18 +342,38 @@ export async function GET() {
         if (processesResponse.results && processesResponse.results.length > 0) {
           const hostname = processesResponse.results[0].hostname
 
+          // Fetch comprehensive metrics including disk usage
           const metricsResponse = await mongoAtlasAdminFetch<{
             measurements: Array<{
               name: string
               units: string
               dataPoints: Array<{ timestamp: string; value: number }>
             }>
-          }>(`/groups/${cluster.projectId}/processes/${hostname}/measurements?granularity=PT1M&period=PT1H&m=CONNECTIONS&m=OPCOUNTER_CMD&m=OPCOUNTER_QUERY&m=OPCOUNTER_INSERT&m=OPCOUNTER_UPDATE&m=OPCOUNTER_DELETE`, publicKey, privateKey)
+          }>(`/groups/${cluster.projectId}/processes/${hostname}/measurements?granularity=PT1M&period=PT1H&m=CONNECTIONS&m=OPCOUNTER_CMD&m=OPCOUNTER_QUERY&m=OPCOUNTER_INSERT&m=OPCOUNTER_UPDATE&m=OPCOUNTER_DELETE&m=DISK_PARTITION_SPACE_USED&m=DISK_PARTITION_SPACE_FREE&m=SYSTEM_MEMORY_USED&m=SYSTEM_MEMORY_FREE`, publicKey, privateKey)
+
+          // Extract latest disk usage values
+          const measurements = metricsResponse.measurements || []
+          const getLatestValue = (name: string) => {
+            const m = measurements.find(m => m.name === name)
+            if (m && m.dataPoints && m.dataPoints.length > 0) {
+              return m.dataPoints[m.dataPoints.length - 1].value
+            }
+            return undefined
+          }
+
+          const diskUsed = getLatestValue('DISK_PARTITION_SPACE_USED')
+          const diskFree = getLatestValue('DISK_PARTITION_SPACE_FREE')
+          const connections = getLatestValue('CONNECTIONS')
 
           clusterMetrics.push({
             clusterName: cluster.name,
             projectName: project?.name || cluster.projectId,
-            measurements: metricsResponse.measurements || [],
+            projectId: cluster.projectId,
+            diskUsedGB: diskUsed ? diskUsed / (1024 * 1024 * 1024) : undefined,
+            diskFreeGB: diskFree ? diskFree / (1024 * 1024 * 1024) : undefined,
+            diskTotalGB: diskUsed && diskFree ? (diskUsed + diskFree) / (1024 * 1024 * 1024) : undefined,
+            connections,
+            measurements,
           })
         }
       } catch (e) {
@@ -360,7 +381,11 @@ export async function GET() {
       }
     }
 
-    // Calculate summary
+    // Calculate summary with actual disk usage from metrics
+    const totalDiskUsedGB = clusterMetrics.reduce((sum, m) => sum + (m.diskUsedGB || 0), 0)
+    const totalDiskFreeGB = clusterMetrics.reduce((sum, m) => sum + (m.diskFreeGB || 0), 0)
+    const totalConnections = clusterMetrics.reduce((sum, m) => sum + (m.connections || 0), 0)
+
     const summary = {
       totalProjects: projects.length,
       totalClusters: clusters.length,
@@ -368,7 +393,10 @@ export async function GET() {
       pausedClusters: clusters.filter(c => c.paused).length,
       totalDatabaseUsers: databaseUsers.length,
       openAlerts: alerts.filter(a => a.status === 'OPEN').length,
-      totalStorageGB: clusters.reduce((sum, c) => sum + (c.diskSizeGB || 0), 0),
+      totalConfiguredStorageGB: clusters.reduce((sum, c) => sum + (c.diskSizeGB || 0), 0),
+      totalDiskUsedGB: Math.round(totalDiskUsedGB * 100) / 100,
+      totalDiskFreeGB: Math.round(totalDiskFreeGB * 100) / 100,
+      totalConnections,
     }
 
     return NextResponse.json({
