@@ -264,7 +264,6 @@ export async function GET() {
     // Flex clusters are a newer deployment type that uses a different API endpoint
     for (const project of projectsToFetch) {
       try {
-        console.log(`Fetching Flex clusters for project ${project.id} (${project.name})...`)
         const flexClustersResponse = await mongoAtlasAdminFetch<{
           results?: Array<{
             id: string
@@ -292,13 +291,7 @@ export async function GET() {
           }>
         }>(`/groups/${project.id}/flexClusters`, publicKey, privateKey, 'v2')
 
-        console.log(`Flex clusters response for ${project.name}:`, JSON.stringify(flexClustersResponse, null, 2))
-
-        const flexResults = flexClustersResponse.results || []
-        console.log(`Found ${flexResults.length} Flex clusters in project ${project.name}`)
-
-        for (const flexCluster of flexResults) {
-          console.log(`Adding Flex cluster: ${flexCluster.name}`)
+        for (const flexCluster of flexClustersResponse.results || []) {
           // Map Flex cluster to match the regular cluster structure
           clusters.push({
             id: flexCluster.id,
@@ -329,7 +322,6 @@ export async function GET() {
       } catch (e) {
         // Flex clusters API might return 404 if no flex clusters exist, which is fine
         const errorMessage = e instanceof Error ? e.message : String(e)
-        console.log(`Flex clusters API error for project ${project.id}: ${errorMessage}`)
         if (!errorMessage.includes('404')) {
           console.error(`Failed to fetch Flex clusters for project ${project.id}:`, e)
         }
@@ -448,53 +440,8 @@ export async function GET() {
           // Try to get database info using v2 API for Flex clusters
           let databases: Array<{ databaseName: string; sizeOnDisk?: number }> = []
 
-          if (isFlexCluster) {
-            try {
-              // Extract hostnames from the cluster's connection string to filter processes
-              const connectionString = cluster.connectionStrings?.standardSrv || ''
-              // Extract the domain from the connection string (e.g., "thehouseonline.uwwfxme.mongodb.net" -> "uwwfxme.mongodb.net")
-              const srvMatch = connectionString.match(/mongodb\+srv:\/\/([^\/]+)/)
-              const clusterDomain = srvMatch ? srvMatch[1].split('.').slice(1).join('.') : ''
-              console.log(`Flex cluster ${cluster.name} domain from connection string: ${clusterDomain}`)
-
-              // Flex clusters might support database listing via v2 API
-              console.log(`Attempting to fetch processes for Flex cluster ${cluster.name} in project ${cluster.projectId}...`)
-              const processesResponse = await mongoAtlasAdminFetch<{
-                results: Array<{ id: string; hostname: string; userAlias?: string; processType: string; typeName?: string }>
-              }>(`/groups/${cluster.projectId}/processes`, publicKey, privateKey, 'v2')
-
-              console.log(`All processes in project:`, processesResponse.results?.map(p => ({ hostname: p.hostname, userAlias: p.userAlias, id: p.id })))
-
-              // Filter processes to only those belonging to this cluster
-              // Match by domain in hostname or userAlias
-              const clusterProcesses = processesResponse.results?.filter(p => {
-                const hostname = p.hostname || ''
-                const userAlias = p.userAlias || ''
-                // Check if the hostname or userAlias contains the cluster's domain
-                return (clusterDomain && (hostname.includes(clusterDomain) || userAlias.includes(clusterDomain)))
-              }) || []
-
-              console.log(`Filtered processes for Flex cluster ${cluster.name}:`, clusterProcesses.map(p => p.id))
-
-              if (clusterProcesses.length > 0) {
-                // Prefer the PRIMARY replica for database listing
-                const primaryProcess = clusterProcesses.find(p => p.typeName === 'REPLICA_PRIMARY') || clusterProcesses[0]
-                const processId = primaryProcess.id || primaryProcess.hostname
-                console.log(`Using processId: ${processId} for database listing (type: ${primaryProcess.typeName})`)
-
-                const dbResponse = await mongoAtlasAdminFetch<{
-                  results?: Array<{ databaseName: string; sizeOnDisk?: number }>
-                }>(`/groups/${cluster.projectId}/processes/${processId}/databases`, publicKey, privateKey, 'v2')
-
-                console.log(`Databases response for Flex cluster ${cluster.name}:`, JSON.stringify(dbResponse, null, 2))
-                databases = dbResponse.results || []
-              } else {
-                console.log(`No matching processes found for Flex cluster ${cluster.name} (domain: ${clusterDomain})`)
-              }
-            } catch (dbError) {
-              console.log(`Could not fetch databases for Flex cluster ${cluster.name}:`, dbError instanceof Error ? dbError.message : dbError)
-            }
-          }
+          // Note: Flex clusters don't expose processes through the Atlas Admin API
+          // Database listing is not available for Flex clusters via the Admin API
 
           const totalDataSize = databases.reduce((sum, db) => sum + (db.sizeOnDisk || 0), 0)
 
