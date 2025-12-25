@@ -58,6 +58,21 @@ const features: Feature[] = [
     color: 'from-purple-500 to-violet-600',
   },
   {
+    title: '3D Terrain Explorer',
+    description: 'Interactive 3D topographical map viewer. Search any location on Earth and explore its terrain with real elevation data.',
+    icon: 'fa-mountain',
+    href: 'https://3d-map.psiegel.org',
+    external: true,
+    color: 'from-indigo-500 to-amber-500',
+  },
+  {
+    title: 'Terrain API',
+    description: 'Public API for fetching elevation data for any location on Earth',
+    icon: 'fa-code',
+    href: '/docs/terrain-api',
+    color: 'from-cyan-500 to-blue-600',
+  },
+  {
     title: 'PRCT Dashboard',
     description: 'Project resource control terminal',
     icon: 'fa-chart-line',
