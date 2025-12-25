@@ -44,6 +44,13 @@ const features: Feature[] = [
     color: 'from-pink-500 to-rose-600',
   },
   {
+    title: 'Birthday API',
+    description: 'Public API for birthday info, zodiac signs, and famous birthdays',
+    icon: 'fa-code',
+    href: '/tools/birthday/api',
+    color: 'from-rose-500 to-orange-500',
+  },
+  {
     title: 'Leaderboard',
     description: 'See top players across all games',
     icon: 'fa-trophy',
