@@ -44,6 +44,13 @@ const features: Feature[] = [
     color: 'from-pink-500 to-rose-600',
   },
   {
+    title: 'Birthday API',
+    description: 'Public API for birthday info, zodiac signs, and famous birthdays',
+    icon: 'fa-code',
+    href: '/tools/birthday/api',
+    color: 'from-rose-500 to-orange-500',
+  },
+  {
     title: 'Leaderboard',
     description: 'See top players across all games',
     icon: 'fa-trophy',
@@ -56,6 +63,21 @@ const features: Feature[] = [
     icon: 'fa-map-marked-alt',
     href: '/roadtrips',
     color: 'from-purple-500 to-violet-600',
+  },
+  {
+    title: '3D Terrain Explorer',
+    description: 'Interactive 3D topographical map viewer. Search any location on Earth and explore its terrain with real elevation data.',
+    icon: 'fa-mountain',
+    href: 'https://3d-map.psiegel.org',
+    external: true,
+    color: 'from-indigo-500 to-amber-500',
+  },
+  {
+    title: 'Terrain API',
+    description: 'Public API for fetching elevation data for any location on Earth',
+    icon: 'fa-code',
+    href: '/docs/terrain-api',
+    color: 'from-cyan-500 to-blue-600',
   },
   {
     title: 'PRCT Dashboard',
