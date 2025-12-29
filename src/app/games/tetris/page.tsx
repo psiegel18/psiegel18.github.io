@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { setSentryGameType, clearSentryGameTags } from '@/lib/sentry'
 
 const SHAPES = [
   [[1, 1, 1, 1]],                    // I
@@ -35,6 +36,12 @@ export default function TetrisPage() {
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'paused' | 'gameover'>('idle')
   const [playerName, setPlayerName] = useState('')
   const [isMobile, setIsMobile] = useState(false)
+
+  // Set Sentry game tags
+  useEffect(() => {
+    setSentryGameType('TETRIS')
+    return () => clearSentryGameTags()
+  }, [])
 
   // Check if mobile
   useEffect(() => {
