@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { setSentryGameType, clearSentryGameTags } from '@/lib/sentry'
 
 type Direction = 'up' | 'down' | 'left' | 'right'
 type Position = { x: number; y: number }
@@ -22,6 +23,12 @@ export default function SnakePage() {
   const directionRef = useRef<Direction>('right')
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null)
   const cellSizeRef = useRef(10)
+
+  // Set Sentry game tags
+  useEffect(() => {
+    setSentryGameType('SNAKE')
+    return () => clearSentryGameTags()
+  }, [])
 
   // Check if mobile
   useEffect(() => {
