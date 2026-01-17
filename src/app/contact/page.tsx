@@ -19,6 +19,10 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  // Honeypot field - bots will fill this, humans won't see it
+  const [website, setWebsite] = useState('')
+  // Track when form was loaded to detect instant bot submissions
+  const [formLoadTime] = useState(() => Date.now())
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +33,7 @@ export default function ContactPage() {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, reason, message }),
+        body: JSON.stringify({ name, email, reason, message, website, formLoadTime }),
       })
 
       if (response.ok) {
@@ -87,6 +91,20 @@ export default function ContactPage() {
 
         <form onSubmit={handleSubmit} className="card p-8">
           <div className="space-y-6">
+            {/* Honeypot field - hidden from humans, bots will fill it */}
+            <div className="absolute -left-[9999px]" aria-hidden="true">
+              <label htmlFor="website">Website</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
+
             {/* Name */}
             <div>
               <label htmlFor="name" className="block text-base font-medium text-gray-300 mb-2">
